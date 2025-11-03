@@ -3,34 +3,213 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import '../../state/theme_cubit.dart';
 import '../../state/auth_cubit.dart';
+import '../../model/user.dart';
 
 class SettingsPage extends StatelessWidget {
   const SettingsPage({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final theme = context.read<ThemeCubit>();
+    final themeCubit = context.read<ThemeCubit>();
+    final themeMode = context.watch<ThemeCubit>().state;
+    final isDarkMode = themeMode == ThemeMode.dark;
     return Scaffold(
-      appBar: AppBar(leading: BackButton(onPressed: ()=> context.pop()), title: const Text('General Settings')),
-      body: ListView(
-        children: [
-          const ListTile(leading: CircleAvatar(child: Icon(Icons.person)), title: Text('Ace Uni'), subtitle: Text('ace@example.com')),
-          const Divider(height: 1),
-          SwitchListTile(
-            value: Theme.of(context).brightness == Brightness.dark,
-            onChanged: (_)=> theme.toggle(),
-            title: const Text('Dark mode'),
-          ),
-          ListTile(
-            leading: const Icon(Icons.logout),
-            title: const Text('Logout'),
-            onTap: (){
-              context.read<AuthCubit>().logout();
-              context.go('/login');
-            },
-          ),
-        ],
+      appBar: AppBar(
+        leading: BackButton(onPressed: () => context.pop()),
+        title: const Text('General Settings'),
+      ),
+      body: BlocBuilder<AuthCubit, AuthState>(
+        builder: (context, state) {
+          final user = state is Authenticated ? state.user : null;
+          return ListView(
+            padding: const EdgeInsets.only(bottom: 32),
+            children: [
+              const SizedBox(height: 8),
+              const _SectionHeader('Personal Information'),
+              _SettingsTile(
+                title: 'User ID',
+                value: user?.id ?? 'Unavailable',
+              ),
+              const Divider(height: 0),
+              _SettingsTile(
+                title: 'Avatar',
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _AvatarPreview(user: user),
+                    const SizedBox(width: 8),
+                    const Icon(Icons.chevron_right, size: 20),
+                  ],
+                ),
+                onTap: () => _showWorkInProgress(context, 'Avatar'),
+              ),
+              const Divider(height: 0),
+              _SettingsTile(
+                title: 'Nickname',
+                value: user?.nickname ?? 'Add nickname',
+                onTap: () => _showWorkInProgress(context, 'Nickname'),
+              ),
+              const SizedBox(height: 16),
+              const _SectionHeader('Account Setting'),
+              _SettingsTile(
+                title: 'Mobile Phone',
+                value: user?.phoneNumber ?? 'Add phone',
+                onTap: () => _showWorkInProgress(context, 'Mobile Phone'),
+              ),
+              const Divider(height: 0),
+              _SettingsTile(
+                title: 'Change Password',
+                onTap: () => _showWorkInProgress(context, 'Change Password'),
+              ),
+              const Divider(height: 0),
+              _SettingsTile(
+                title: 'Nickname',
+                value: user?.nickname ?? 'Add nickname',
+                onTap: () => _showWorkInProgress(context, 'Nickname'),
+              ),
+              const Divider(height: 0),
+              _SettingsTile(
+                title: 'Cancel User',
+                onTap: () => _showWorkInProgress(context, 'Cancel User'),
+              ),
+              const SizedBox(height: 16),
+              const _SectionHeader('Authority Setting'),
+              _SettingsTile(
+                title: 'Service Items',
+                onTap: () => _showWorkInProgress(context, 'Service Items'),
+              ),
+              const Divider(height: 0),
+              _SettingsTile(
+                title: 'Privacy Policy',
+                onTap: () => _showWorkInProgress(context, 'Privacy Policy'),
+              ),
+              const Divider(height: 0),
+              _SettingsTile(
+                title: 'Dark Mode',
+                trailing: Switch(
+                  value: isDarkMode,
+                  onChanged: (_) => themeCubit.toggle(),
+                ),
+              ),
+              const SizedBox(height: 24),
+              Container(
+                color: Theme.of(context).colorScheme.surfaceVariant,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                child: Center(
+                  child: TextButton(
+                    style: TextButton.styleFrom(foregroundColor: Colors.red),
+                    onPressed: () {
+                      context.read<AuthCubit>().logout();
+                      context.go('/login');
+                    },
+                    child: const Text('Logout'),
+                  ),
+                ),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
+}
+
+class _SectionHeader extends StatelessWidget {
+  const _SectionHeader(this.label);
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      color: Theme.of(context).colorScheme.surfaceVariant,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      child: Text(
+        label,
+        style: Theme.of(context)
+            .textTheme
+            .titleSmall
+            ?.copyWith(fontWeight: FontWeight.w600),
+      ),
+    );
+  }
+}
+
+class _SettingsTile extends StatelessWidget {
+  const _SettingsTile({
+    required this.title,
+    this.value,
+    this.onTap,
+    this.trailing,
+  });
+
+  final String title;
+  final String? value;
+  final VoidCallback? onTap;
+  final Widget? trailing;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    final defaultTrailingChildren = <Widget>[];
+    if (value != null) {
+      defaultTrailingChildren.add(
+        Text(
+          value!,
+          style: textTheme.bodyMedium?.copyWith(color: Colors.grey[600]),
+        ),
+      );
+    }
+    if (onTap != null) {
+      if (defaultTrailingChildren.isNotEmpty) {
+        defaultTrailingChildren.add(const SizedBox(width: 6));
+      }
+      defaultTrailingChildren.add(const Icon(Icons.chevron_right, size: 20));
+    }
+
+    return ListTile(
+      title: Text(title),
+      dense: true,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+      trailing: trailing ??
+          (defaultTrailingChildren.isEmpty
+              ? null
+              : Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: defaultTrailingChildren)),
+      onTap: onTap,
+    );
+  }
+}
+
+class _AvatarPreview extends StatelessWidget {
+  const _AvatarPreview({required this.user});
+
+  final User? user;
+
+  @override
+  Widget build(BuildContext context) {
+    final avatarUrl = user?.avatarUrl;
+    if (avatarUrl != null && avatarUrl.isNotEmpty) {
+      return CircleAvatar(
+        radius: 18,
+        backgroundImage: NetworkImage(avatarUrl),
+      );
+    }
+
+    final nickname = user?.nickname ?? '';
+    final hasInitial = nickname.isNotEmpty;
+    return CircleAvatar(
+      radius: 18,
+      child: hasInitial
+          ? Text(nickname.substring(0, 1).toUpperCase())
+          : const Icon(Icons.person, size: 18),
+    );
+  }
+}
+
+void _showWorkInProgress(BuildContext context, String feature) {
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(content: Text('「$feature」is coming soon')),
+  );
 }
