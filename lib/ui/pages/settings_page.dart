@@ -28,7 +28,21 @@ class SettingsPage extends StatelessWidget {
               const _SectionHeader('Personal Information'),
               _SettingsTile(
                 title: 'User ID',
-                value: user?.id ?? 'Unavailable',
+                value: user?.id ?? 'Add nickname',
+                onTap: ()async{
+                  final controller = TextEditingController(text: user?.nickname ?? '');
+                  final result = await showDialog<String>(
+                    context: context,
+                    builder: (_) => AlertDialog(
+                      title: const Text('Edit Nickname'),
+                      content: TextField(controller: controller, maxLength: 20),
+                      actions: [
+                        TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+                        ElevatedButton(onPressed: () => Navigator.pop(context, controller.text), child: const Text('Save')),
+                      ],
+                      ) ,
+                  );
+                },
               ),
               const Divider(height: 0),
               _SettingsTile(
