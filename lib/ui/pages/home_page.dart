@@ -62,7 +62,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import '../../state/tasks_cubit.dart';
-import '../widgets/quick_card.dart';
+// import '../widgets/quick_card.dart';
 import '../widgets/prompt_dialog.dart';
 
 class HomePage extends StatelessWidget {
