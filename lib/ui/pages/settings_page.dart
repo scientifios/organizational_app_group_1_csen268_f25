@@ -54,7 +54,14 @@ class SettingsPage extends StatelessWidget {
                     const Icon(Icons.chevron_right, size: 20),
                   ],
                 ),
-                onTap: () => _showWorkInProgress(context, 'Avatar'),
+                onTap: () async{
+                  final source = await _chooseAvatarSourceDialog(context);
+                  if (source != null){
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Avatar: $source (demo only)'))
+                      );
+                  }
+                },
               ),
               const Divider(height: 0),
               _SettingsTile(
@@ -260,4 +267,34 @@ Future<String?> _editTextDialog(
 
   if (result == null || result.isEmpty || result == initial) return null;
   return result;
+}
+
+Future<String?> _chooseAvatarSourceDialog(BuildContext context) {
+  return showDialog<String>(
+    context: context,
+    builder: (_) => SimpleDialog(
+      title: const Text('Change Avatar'),
+      children: [
+        SimpleDialogOption(
+          onPressed: () => Navigator.pop(context, 'Take Photo'),
+          child: const ListTile(
+            leading: Icon(Icons.photo_camera),
+            title: Text('Take Photo'),
+          ),
+        ),
+        SimpleDialogOption(
+          onPressed: () => Navigator.pop(context, 'Choose from Gallery'),
+          child: const ListTile(
+            leading: Icon(Icons.photo_library),
+            title: Text('Choose from Gallery'),
+          ),
+        ),
+        const Divider(height: 0),
+        SimpleDialogOption(
+          onPressed: () => Navigator.pop(context),
+          child: const Center(child: Text('Cancel')),
+        ),
+      ],
+    ),
+  );
 }
