@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import '../../../state/tasks_cubit.dart';
-import '../../../model/task.dart';
+import '../../model/task.dart';
 
 class TaskTile extends StatelessWidget {
   final Task task;

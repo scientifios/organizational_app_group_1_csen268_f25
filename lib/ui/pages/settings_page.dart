@@ -61,12 +61,12 @@ class SettingsPage extends StatelessWidget {
                 title: 'Change Password',
                 onTap: () => _showWorkInProgress(context, 'Change Password'),
               ),
-              const Divider(height: 0),
-              _SettingsTile(
-                title: 'Nickname',
-                value: user?.nickname ?? 'Add nickname',
-                onTap: () => _showWorkInProgress(context, 'Nickname'),
-              ),
+              // const Divider(height: 0),
+              // _SettingsTile(
+              //   title: 'Nickname',
+              //   value: user?.nickname ?? 'Add nickname',
+              //   onTap: () => _showWorkInProgress(context, 'Nickname'),
+              // ),
               const Divider(height: 0),
               _SettingsTile(
                 title: 'Cancel User',
