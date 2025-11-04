@@ -67,7 +67,19 @@ class SettingsPage extends StatelessWidget {
               _SettingsTile(
                 title: 'Nickname',
                 value: user?.nickname ?? 'Add nickname',
-                onTap: () => _showWorkInProgress(context, 'Nickname'),
+                onTap: () async{
+                  final text = await _editTextDialog(
+                    context, 
+                    title: 'Enter Nickname',
+                    initial: user?.nickname ?? '',
+                    hint: 'Enter nickname',
+                  );
+                  if (text != null){
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Avatar: $text (demo only)'))
+                      );
+                  }                  
+                }
               ),
               const SizedBox(height: 16),
               const _SectionHeader('Account Setting'),
