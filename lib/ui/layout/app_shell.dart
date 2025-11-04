@@ -15,21 +15,29 @@ class AppShell extends StatelessWidget {
           onPressed: () => context.push('/settings'),
         ),
         actions: [
-          IconButton(icon: const Icon(Icons.search), onPressed: () => context.push('/search')),
-          IconButton(icon: const Icon(Icons.notifications_outlined), onPressed: () => context.push('/notifications')),
+          IconButton(
+              icon: const Icon(Icons.search),
+              onPressed: () => context.push('/search')),
+          IconButton(
+              icon: const Icon(Icons.notifications_outlined),
+              onPressed: () => context.push('/notifications')),
         ],
       ),
-      body: AnimatedSwitcher(duration: const Duration(milliseconds: 250), child: child),
+      body: AnimatedSwitcher(
+          duration: const Duration(milliseconds: 250), child: child),
       floatingActionButtonLocation: FloatingActionButtonLocation.endDocked,
       floatingActionButton: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           FloatingActionButton.small(
             heroTag: 'copilot',
-            onPressed: () => showModalBottomSheet(
+            onPressed: () => showDialog(
               context: context,
-              isScrollControlled: true,
-              builder: (_) => const _CopilotSheet(),
+              builder: (_) => const Dialog(
+                insetPadding:
+                    EdgeInsets.symmetric(horizontal: 32, vertical: 120),
+                child: _CopilotSheet(),
+              ),
             ),
             child: const Icon(Icons.smart_toy_outlined),
           ),
@@ -74,10 +82,36 @@ class _CopilotSheet extends StatelessWidget {
           controller: controller,
           padding: const EdgeInsets.all(16),
           children: const [
-            ListTile(leading: Icon(Icons.smart_toy), title: Text('Copilot'), subtitle: Text('How can I help you today?')),
-            TextField(decoration: InputDecoration(prefixIcon: Icon(Icons.message_outlined), hintText: 'Ask anything...')),
-            SizedBox(height: 12),
-            ListTile(leading: Icon(Icons.lightbulb_outline), title: Text('Tip: Try "Plan my day"')),
+            // 1) 头行
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: Icon(Icons.smart_toy),
+              title: Text('Copilot'),
+              subtitle: Text('How can I help you today?'),
+            ),
+
+            // 2) 输入行（也用 ListTile）
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: Icon(Icons.message_outlined),
+              title: TextField(
+                decoration: InputDecoration(
+                  hintText: 'Ask anything...',
+                  border: InputBorder.none,         // 去掉下划线
+                  isDense: true,
+                  contentPadding: EdgeInsets.zero,  // 去掉 TextField 自身内边距
+                ),
+              ),
+            ),
+
+            Divider(height: 16),
+
+            // 3) Tip 行
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: Icon(Icons.lightbulb_outline),
+              title: Text('Tip: Try "Plan my day"'),
+            ),
           ],
         ),
       ),
