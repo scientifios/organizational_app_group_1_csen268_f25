@@ -40,7 +40,8 @@ class AppRouter {
         GoRoute(
           path: '/tasks',
           name: 'tasks',
-          pageBuilder: (c, s) => CustomTransitionPage(child: const TasksPage(), transitionsBuilder: _slideUp),
+          // pageBuilder: (c, s) => CustomTransitionPage(child: const TasksPage(), transitionsBuilder: _slideUp),
+          builder: (c, s) => const TasksPage(),          
           routes: [
             GoRoute(
               path: 'myday',
