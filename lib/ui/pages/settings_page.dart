@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:organizational_app_group_1_csen268_f25/ui/pages/service_items_page.dart';
 import '../../state/theme_cubit.dart';
 import '../../state/auth_cubit.dart';
 import '../../model/user.dart';
@@ -28,7 +29,20 @@ class SettingsPage extends StatelessWidget {
               const _SectionHeader('Personal Information'),
               _SettingsTile(
                 title: 'User ID',
-                value: user?.id ?? 'Unavailable',
+                value: user?.id ?? 'Add nickname',
+                onTap: ()async{
+                  final newId = await _editTextDialog(
+                    context,
+                    title: 'Edit User ID',
+                    initial: user?.id ?? '',
+                    hint: 'Enter new User ID',
+                  );
+                  if(newId != null){
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('User ID -> $newId (demo only)'))
+                      );
+                  }
+                },
               ),
               const Divider(height: 0),
               _SettingsTile(
@@ -41,25 +55,62 @@ class SettingsPage extends StatelessWidget {
                     const Icon(Icons.chevron_right, size: 20),
                   ],
                 ),
-                onTap: () => _showWorkInProgress(context, 'Avatar'),
+                onTap: () async{
+                  final source = await _chooseAvatarSourceDialog(context);
+                  if (source != null){
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Avatar: $source (demo only)'))
+                      );
+                  }
+                },
               ),
               const Divider(height: 0),
               _SettingsTile(
                 title: 'Nickname',
                 value: user?.nickname ?? 'Add nickname',
-                onTap: () => _showWorkInProgress(context, 'Nickname'),
+                onTap: () async{
+                  final text = await _editTextDialog(
+                    context, 
+                    title: 'Enter Nickname',
+                    initial: user?.nickname ?? '',
+                    hint: 'Enter nickname',
+                  );
+                  if (text != null){
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Avatar: $text (demo only)'))
+                      );
+                  }                  
+                }
               ),
               const SizedBox(height: 16),
               const _SectionHeader('Account Setting'),
               _SettingsTile(
                 title: 'Mobile Phone',
                 value: user?.phoneNumber ?? 'Add phone',
-                onTap: () => _showWorkInProgress(context, 'Mobile Phone'),
+                onTap: () async{
+                  final phone = await _editTextDialog(
+                    context, 
+                    title: 'Edit Mobile Phone',
+                    initial: user?.phoneNumber ?? '',
+                    hint: 'Enter phone number',
+                    keyboardType: TextInputType.phone,
+                  );
+                  if (phone != null){
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Avatar: $phone (demo only)'))
+                      );
+                  }
+                }
               ),
               const Divider(height: 0),
               _SettingsTile(
                 title: 'Change Password',
-                onTap: () => _showWorkInProgress(context, 'Change Password'),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const ChangePasswordPage()),
+                  );
+                },
               ),
               // const Divider(height: 0),
               // _SettingsTile(
@@ -70,18 +121,53 @@ class SettingsPage extends StatelessWidget {
               const Divider(height: 0),
               _SettingsTile(
                 title: 'Cancel User',
-                onTap: () => _showWorkInProgress(context, 'Cancel User'),
+                onTap: () async{
+                  final ok = await showDialog<bool>(
+                    context: context,
+                    builder: (_) => AlertDialog(
+                      title: const Text('Cancel User'),
+                      content: const Text(
+                        'This action is irreversible. Do you want to cancel this user?'
+                      ),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(context, false), 
+                          child: const Text('No'),
+                        ),
+                        FilledButton.tonal(
+                          onPressed: () => Navigator.pop(context, true), 
+                          child: const Text('Yes, cancel'),
+                        ),
+                      ],
+                    )
+                  );
+                  if (ok == true){
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('User cancelled (demo only)'),)
+                    );
+                  }
+                }
               ),
               const SizedBox(height: 16),
               const _SectionHeader('Authority Setting'),
               _SettingsTile(
                 title: 'Service Items',
-                onTap: () => _showWorkInProgress(context, 'Service Items'),
+                onTap: (){
+                  Navigator.push(
+                    context, 
+                    MaterialPageRoute(builder: (_) => const ServiceItemsPage())
+                  );
+                }
               ),
               const Divider(height: 0),
               _SettingsTile(
                 title: 'Privacy Policy',
-                onTap: () => _showWorkInProgress(context, 'Privacy Policy'),
+                onTap: (){
+                  Navigator.push(
+                    context, 
+                    MaterialPageRoute(builder: (_) => const ServiceItemsPage())
+                  );
+                }
               ),
               const Divider(height: 0),
               _SettingsTile(
@@ -212,4 +298,121 @@ void _showWorkInProgress(BuildContext context, String feature) {
   ScaffoldMessenger.of(context).showSnackBar(
     SnackBar(content: Text('「$feature」is coming soon')),
   );
+}
+
+Future<String?> _editTextDialog(
+  BuildContext context, {
+  required String title,
+  String initial = '',
+  String? hint,
+  TextInputType? keyboardType,
+}) async {
+  final controller = TextEditingController(text: initial);
+  final result = await showDialog<String>(
+    context: context,
+    builder: (_) => AlertDialog(
+      title: Text(title),
+      content: TextField(
+        controller: controller,
+        keyboardType: keyboardType,
+        decoration: InputDecoration(hintText: hint),
+        autofocus: true,
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancel'),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.pop(context, controller.text.trim()),
+          child: const Text('Save'),
+        ),
+      ],
+    ),
+  );
+
+  if (result == null || result.isEmpty || result == initial) return null;
+  return result;
+}
+
+Future<String?> _chooseAvatarSourceDialog(BuildContext context) {
+  return showDialog<String>(
+    context: context,
+    builder: (_) => SimpleDialog(
+      title: const Text('Change Avatar'),
+      children: [
+        SimpleDialogOption(
+          onPressed: () => Navigator.pop(context, 'Take Photo'),
+          child: const ListTile(
+            leading: Icon(Icons.photo_camera),
+            title: Text('Take Photo'),
+          ),
+        ),
+        SimpleDialogOption(
+          onPressed: () => Navigator.pop(context, 'Choose from Gallery'),
+          child: const ListTile(
+            leading: Icon(Icons.photo_library),
+            title: Text('Choose from Gallery'),
+          ),
+        ),
+        const Divider(height: 0),
+        SimpleDialogOption(
+          onPressed: () => Navigator.pop(context),
+          child: const Center(child: Text('Cancel')),
+        ),
+      ],
+    ),
+  );
+}
+
+class ChangePasswordPage extends StatelessWidget {
+  const ChangePasswordPage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final oldCtrl = TextEditingController();
+    final newCtrl = TextEditingController();
+    final confirmCtrl = TextEditingController();
+
+    return Scaffold(
+      appBar: AppBar(
+        leading: BackButton(onPressed: () => Navigator.pop(context)),
+        title: const Text('Change Password'),
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            TextField(
+              controller: oldCtrl,
+              obscureText: true,
+              decoration: const InputDecoration(labelText: 'Old Password'),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: newCtrl,
+              obscureText: true,
+              decoration: const InputDecoration(labelText: 'New Password'),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: confirmCtrl,
+              obscureText: true,
+              decoration: const InputDecoration(labelText: 'Confirm Password'),
+            ),
+            const SizedBox(height: 24),
+            FilledButton(
+              onPressed: () {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Change password (demo only)')),
+                );
+              },
+              child: const Text('Confirm'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
