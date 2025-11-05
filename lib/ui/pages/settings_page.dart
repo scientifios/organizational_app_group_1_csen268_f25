@@ -120,7 +120,32 @@ class SettingsPage extends StatelessWidget {
               const Divider(height: 0),
               _SettingsTile(
                 title: 'Cancel User',
-                onTap: () => _showWorkInProgress(context, 'Cancel User'),
+                onTap: () async{
+                  final ok = await showDialog<bool>(
+                    context: context,
+                    builder: (_) => AlertDialog(
+                      title: const Text('Cancel User'),
+                      content: const Text(
+                        'This action is irreversible. Do you want to cancel this user?'
+                      ),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(context, false), 
+                          child: const Text('No'),
+                        ),
+                        FilledButton.tonal(
+                          onPressed: () => Navigator.pop(context, true), 
+                          child: const Text('Yes, cancel'),
+                        ),
+                      ],
+                    )
+                  );
+                  if (ok == true){
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('User cancelled (demo only)'),)
+                    );
+                  }
+                }
               ),
               const SizedBox(height: 16),
               const _SectionHeader('Authority Setting'),
