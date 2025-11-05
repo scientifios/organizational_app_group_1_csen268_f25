@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:organizational_app_group_1_csen268_f25/ui/pages/service_items_page.dart';
 import '../../state/theme_cubit.dart';
 import '../../state/auth_cubit.dart';
 import '../../model/user.dart';
@@ -151,12 +152,22 @@ class SettingsPage extends StatelessWidget {
               const _SectionHeader('Authority Setting'),
               _SettingsTile(
                 title: 'Service Items',
-                onTap: () => _showWorkInProgress(context, 'Service Items'),
+                onTap: (){
+                  Navigator.push(
+                    context, 
+                    MaterialPageRoute(builder: (_) => const ServiceItemsPage())
+                  );
+                }
               ),
               const Divider(height: 0),
               _SettingsTile(
                 title: 'Privacy Policy',
-                onTap: () => _showWorkInProgress(context, 'Privacy Policy'),
+                onTap: (){
+                  Navigator.push(
+                    context, 
+                    MaterialPageRoute(builder: (_) => const ServiceItemsPage())
+                  );
+                }
               ),
               const Divider(height: 0),
               _SettingsTile(
