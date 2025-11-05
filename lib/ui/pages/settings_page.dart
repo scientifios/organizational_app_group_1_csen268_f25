@@ -86,7 +86,20 @@ class SettingsPage extends StatelessWidget {
               _SettingsTile(
                 title: 'Mobile Phone',
                 value: user?.phoneNumber ?? 'Add phone',
-                onTap: () => _showWorkInProgress(context, 'Mobile Phone'),
+                onTap: () async{
+                  final phone = await _editTextDialog(
+                    context, 
+                    title: 'Edit Mobile Phone',
+                    initial: user?.phoneNumber ?? '',
+                    hint: 'Enter phone number',
+                    keyboardType: TextInputType.phone,
+                  );
+                  if (phone != null){
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Avatar: $phone (demo only)'))
+                      );
+                  }
+                }
               ),
               const Divider(height: 0),
               _SettingsTile(
