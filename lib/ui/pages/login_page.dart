@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import '../../state/auth_cubit.dart';
-import '../../model/user.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -12,10 +11,23 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage> {
-  bool signup = false;
+  final _formKey = GlobalKey<FormState>();
+  final _emailCtrl = TextEditingController();
+  final _passwordCtrl = TextEditingController();
+  bool _signup = false;
+  bool _obscurePassword = true;
+  bool _submitting = false;
+
+  @override
+  void dispose() {
+    _emailCtrl.dispose();
+    _passwordCtrl.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Scaffold(
       body: Center(
         child: ConstrainedBox(
@@ -24,46 +36,121 @@ class _LoginPageState extends State<LoginPage> {
             margin: const EdgeInsets.all(24),
             child: Padding(
               padding: const EdgeInsets.all(24.0),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(signup ? 'Sign Up' : 'Login',
-                      style: Theme.of(context).textTheme.headlineSmall),
-                  const SizedBox(height: 16),
-                  const TextField(
-                      decoration: InputDecoration(labelText: 'Email')),
-                  const SizedBox(height: 8),
-                  const TextField(
-                      decoration: InputDecoration(labelText: 'Password'),
-                      obscureText: true),
-                  const SizedBox(height: 16),
-                  FilledButton(
-                    onPressed: () {
-                      context.read<AuthCubit>().login(
-                            const User(
-                              id: '121313',
-                              email: 'ace@example.com',
-                              nickname: 'Archie',
-                              avatarUrl: '',
-                              phoneNumber: '121313',
-                            ),
-                          );
-                      context.go('/home');
-                    },
-                    child: Text(signup ? 'Create account' : 'Login'),
-                  ),
-                  TextButton(
-                    onPressed: () => setState(() => signup = !signup),
-                    child: Text(signup
-                        ? 'Have an account? Login'
-                        : 'No account? Sign up'),
-                  )
-                ],
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      _signup ? 'Sign Up' : 'Login',
+                      style: theme.textTheme.headlineSmall,
+                    ),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: _emailCtrl,
+                      decoration: const InputDecoration(labelText: 'Email'),
+                      autofillHints: const [AutofillHints.username],
+                      textInputAction: TextInputAction.next,
+                      keyboardType: TextInputType.emailAddress,
+                      validator: (text) {
+                        final value = text?.trim() ?? '';
+                        if (value.isEmpty) return 'Please enter your email.';
+                        if (!value.contains('@')) return 'Email looks invalid.';
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 8),
+                    TextFormField(
+                      controller: _passwordCtrl,
+                      decoration: InputDecoration(
+                        labelText: 'Password',
+                        suffixIcon: IconButton(
+                          tooltip:
+                              _obscurePassword ? 'Show password' : 'Hide password',
+                          icon: Icon(
+                            _obscurePassword
+                                ? Icons.visibility
+                                : Icons.visibility_off,
+                          ),
+                          onPressed: () => setState(
+                            () => _obscurePassword = !_obscurePassword,
+                          ),
+                        ),
+                      ),
+                      autofillHints: const [AutofillHints.password],
+                      obscureText: _obscurePassword,
+                      textInputAction: TextInputAction.done,
+                      onFieldSubmitted: (_) => _submit(),
+                      validator: (text) {
+                        final value = text ?? '';
+                        if (value.isEmpty) return 'Please enter your password.';
+                        if (value.length < 6) {
+                          return 'Password must be at least 6 characters.';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    SizedBox(
+                      width: double.infinity,
+                      child: FilledButton(
+                        onPressed: _submitting ? null : _submit,
+                        child: _submitting
+                            ? const SizedBox(
+                                height: 18,
+                                width: 18,
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              )
+                            : Text(_signup ? 'Create account' : 'Login'),
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: _submitting
+                          ? null
+                          : () => setState(() => _signup = !_signup),
+                      child: Text(
+                        _signup
+                            ? 'Have an account? Login'
+                            : 'No account? Sign up',
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
         ),
       ),
     );
+  }
+
+  Future<void> _submit() async {
+    if (!_formKey.currentState!.validate()) return;
+    setState(() => _submitting = true);
+    final auth = context.read<AuthCubit>();
+    try {
+      if (_signup) {
+        await auth.signup(
+          email: _emailCtrl.text.trim(),
+          password: _passwordCtrl.text.trim(),
+        );
+      } else {
+        await auth.login(
+          email: _emailCtrl.text.trim(),
+          password: _passwordCtrl.text.trim(),
+        );
+      }
+      if (!mounted) return;
+      context.go('/home');
+    } on AuthFailure catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.message)),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _submitting = false);
+      }
+    }
   }
 }
