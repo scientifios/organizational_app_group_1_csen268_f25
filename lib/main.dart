@@ -1,13 +1,36 @@
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'firebase_options.dart';
 import 'router/app_router.dart';
 import 'state/theme_cubit.dart';
 import 'state/auth_cubit.dart';
 import 'state/tasks_cubit.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await _bootstrapFirebase();
   runApp(const OrgApp());
+}
+
+Future<void> _bootstrapFirebase() async {
+  final options = DefaultFirebaseOptions.currentPlatform;
+  if (options != null) {
+    await Firebase.initializeApp(options: options);
+    return;
+  }
+
+  if (kIsWeb) {
+    throw StateError(
+      'Firebase is not configured for Web. Run `flutterfire configure` to '
+      'generate firebase_options.dart or provide FirebaseOptions manually.',
+    );
+  }
+
+  await Firebase.initializeApp();
 }
 
 class OrgApp extends StatefulWidget {
@@ -25,7 +48,9 @@ class _OrgAppState extends State<OrgApp> {
     return MultiBlocProvider(
       providers: [
         BlocProvider(create: (_) => ThemeCubit()),
-        BlocProvider(create: (_) => AuthCubit()),
+        BlocProvider(
+          create: (_) => AuthCubit(firebaseAuth: FirebaseAuth.instance),
+        ),
         BlocProvider(create: (_) => TasksCubit()..seedDemoData()),
       ],
       // Use a Builder to access the context where providers above are available
