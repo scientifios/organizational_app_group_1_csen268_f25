@@ -10,6 +10,7 @@ class Task extends Equatable {
   final String? listId;
   final List<String> steps;
   final String? note;
+  final List<String> audioClips;
 
   const Task({
     required this.id,
@@ -20,6 +21,7 @@ class Task extends Equatable {
     this.listId,
     this.steps = const [],
     this.note,
+    this.audioClips = const [],
   });
 
   Task copyWith({
@@ -31,6 +33,7 @@ class Task extends Equatable {
     String? listId,
     List<String>? steps,
     String? note,
+    List<String>? audioClips,
   }) {
     return Task(
       id: id ?? this.id,
@@ -41,9 +44,10 @@ class Task extends Equatable {
       listId: listId ?? this.listId,
       steps: steps ?? this.steps,
       note: note ?? this.note,
+      audioClips: audioClips ?? this.audioClips,
     );
   }
 
   @override
-  List<Object?> get props => [id, title, completed, important, myDay, listId, steps, note];
+  List<Object?> get props => [id, title, completed, important, myDay, listId, steps, note, audioClips];
 }

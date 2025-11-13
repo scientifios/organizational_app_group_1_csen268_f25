@@ -27,6 +27,7 @@ class TasksCubit extends Cubit<TasksState> {
       important: i % 3 == 0,
       myDay: i % 2 == 0,
       listId: i % 2 == 0 ? "l1" : "l2",
+      audioClips: const [],
     ));
     emit(TasksState(tasks: tasks, lists: lists));
   }
@@ -67,6 +68,26 @@ class TasksCubit extends Cubit<TasksState> {
   void setNote(String taskId, String note) {
     emit(state.copyWith(tasks: [
       for (final t in state.tasks) t.id == taskId ? t.copyWith(note: note) : t
+    ]));
+  }
+
+  void addAudioClip(String taskId, String path) {
+    emit(state.copyWith(tasks: [
+      for (final t in state.tasks)
+        if (t.id == taskId)
+          t.copyWith(audioClips: [...t.audioClips, path])
+        else
+          t
+    ]));
+  }
+
+  void removeAudioClip(String taskId, String path) {
+    emit(state.copyWith(tasks: [
+      for (final t in state.tasks)
+        if (t.id == taskId)
+          t.copyWith(audioClips: t.audioClips.where((clip) => clip != path).toList())
+        else
+          t
     ]));
   }
 }
