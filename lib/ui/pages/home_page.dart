@@ -106,7 +106,7 @@ class HomePage extends StatelessWidget {
               const SizedBox(height: 12),
               _QuickFullRow(
                 icon: Icons.notifications_outlined,
-                label: 'Notification',
+                label: 'Messages',
                 onTap: () => context.push('/notifications'),
               ),
             ],

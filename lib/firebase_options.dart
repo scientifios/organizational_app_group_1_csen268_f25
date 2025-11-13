@@ -72,4 +72,5 @@ class DefaultFirebaseOptions {
     storageBucket: 'organizationalapp.firebasestorage.app',
     iosBundleId: 'com.example.organizationalAppGroup1Csen268F25',
   );
+
 }

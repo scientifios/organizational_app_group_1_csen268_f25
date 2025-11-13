@@ -41,9 +41,18 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>fetch</string>
+		<string>remote-notification</string>
+	</array>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
+	<true/>
+	<key>NSUserNotificationUsageDescription</key>
+	<string>This app sends reminders so you never miss an important task.</string>
+	<key>FirebaseMessagingAutoInitEnabled</key>
 	<true/>
 </dict>
 </plist>
