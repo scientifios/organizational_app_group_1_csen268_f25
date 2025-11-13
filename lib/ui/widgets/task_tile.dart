@@ -15,15 +15,24 @@ class TaskTile extends StatelessWidget {
     final cubit = context.read<TasksCubit>();
     return ListTile(
       leading: showCheckbox
-          ? Checkbox(value: task.completed, onChanged: (_) => cubit.toggleComplete(task.id))
+          ? Checkbox(
+              value: task.completed,
+              onChanged: (_) {
+                cubit.toggleComplete(task.id);
+              },
+            )
           : const Icon(Icons.radio_button_unchecked),
       title: Text(task.title, style: TextStyle(decoration: task.completed ? TextDecoration.lineThrough : null)),
       trailing: IconButton(
         icon: Icon(task.important ? Icons.star : Icons.star_border),
-        onPressed: () => cubit.toggleImportant(task.id),
+        onPressed: () {
+          cubit.toggleImportant(task.id);
+        },
       ),
       onTap: () => context.push('/tasks/detail/${task.id}'),
-      onLongPress: () => cubit.removeTask(task.id),
+      onLongPress: () {
+        cubit.removeTask(task.id);
+      },
     );
   }
 }

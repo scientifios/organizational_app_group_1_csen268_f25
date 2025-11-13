@@ -38,9 +38,9 @@ class _TasksPageState extends State<TasksPage> {
             child: Row(children: [
               Expanded(child: TextField(controller: _controller, decoration: const InputDecoration(hintText: 'Add a task'))),
               const SizedBox(width: 8),
-              FilledButton(onPressed: (){
+              FilledButton(onPressed: () async {
                 if (_controller.text.trim().isNotEmpty) {
-                  cubit.addTask(_controller.text.trim());
+                  await cubit.addTask(_controller.text.trim());
                   _controller.clear();
                 }
               }, child: const Text('Add'))

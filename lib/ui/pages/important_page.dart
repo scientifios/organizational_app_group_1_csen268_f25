@@ -18,9 +18,16 @@ class ImportantPage extends StatelessWidget {
           final t = tasks[i];
           return ListTile(
             title: Text(t.title),
-            trailing: IconButton(icon: Icon(t.important? Icons.star : Icons.star_border), onPressed: ()=> context.read<TasksCubit>().toggleImportant(t.id)),
+            trailing: IconButton(
+              icon: Icon(t.important? Icons.star : Icons.star_border),
+              onPressed: () {
+                context.read<TasksCubit>().toggleImportant(t.id);
+              },
+            ),
             onTap: ()=> context.push('/tasks/detail/${t.id}'),
-            onLongPress: ()=> context.read<TasksCubit>().removeTask(t.id),
+            onLongPress: () {
+              context.read<TasksCubit>().removeTask(t.id);
+            },
           );
         },
       ),

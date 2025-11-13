@@ -8,6 +8,7 @@ import 'package:go_router/go_router.dart';
 import 'firebase_options.dart';
 import 'repository/messages_repository.dart';
 import 'repository/push_token_repository.dart';
+import 'repository/tasks_repository.dart';
 import 'router/app_router.dart';
 import 'services/push_notification_service.dart';
 import 'state/auth_cubit.dart';
@@ -72,6 +73,7 @@ class _OrgAppState extends State<OrgApp> {
       providers: [
         RepositoryProvider(create: (_) => MessagesRepository()),
         RepositoryProvider(create: (_) => PushTokenRepository()),
+        RepositoryProvider(create: (_) => TasksRepository()),
         RepositoryProvider(
           create: (context) => PushNotificationService(
             tokenRepository: context.read<PushTokenRepository>(),
@@ -86,8 +88,10 @@ class _OrgAppState extends State<OrgApp> {
           ),
           BlocProvider(
             create: (context) => TasksCubit(
+              tasksRepository: context.read<TasksRepository>(),
               messagesRepository: context.read<MessagesRepository>(),
-            )..seedDemoData(),
+              authCubit: context.read<AuthCubit>(),
+            ),
           ),
           BlocProvider(
             create: (context) => MessagesCubit(

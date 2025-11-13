@@ -41,9 +41,11 @@ class _AddNotePageState extends State<AddNotePage> {
               IconButton(onPressed: (){}, icon: const Icon(Icons.photo_camera_outlined)),
               IconButton(onPressed: (){}, icon: const Icon(Icons.mic_none_outlined)),
               const Spacer(),
-              FilledButton(onPressed: (){
-                context.read<TasksCubit>().setNote(widget.taskId, controller.text);
-                context.pop();
+              FilledButton(onPressed: () async {
+                await context.read<TasksCubit>().setNote(widget.taskId, controller.text);
+                if (mounted) {
+                  context.pop();
+                }
               }, child: const Text('Save'))
             ])
           ],

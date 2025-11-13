@@ -13,7 +13,12 @@ class TaskDetailPage extends StatelessWidget {
     final stepController = TextEditingController();
     return Scaffold(
       appBar: AppBar(leading: BackButton(onPressed: ()=> context.pop()), title: Text(task.title), actions: [
-        IconButton(icon: Icon(task.important? Icons.star : Icons.star_border), onPressed: ()=> context.read<TasksCubit>().toggleImportant(task.id)),
+        IconButton(
+          icon: Icon(task.important? Icons.star : Icons.star_border),
+          onPressed: () {
+            context.read<TasksCubit>().toggleImportant(task.id);
+          },
+        ),
       ]),
       body: ListView(
         padding: const EdgeInsets.all(16),
@@ -23,9 +28,9 @@ class TaskDetailPage extends StatelessWidget {
           for (final s in task.steps) ListTile(leading: const Icon(Icons.check_box_outline_blank), title: Text(s)),
           Row(children: [
             Expanded(child: TextField(controller: stepController, decoration: const InputDecoration(hintText: 'Add a step'))),
-            IconButton(icon: const Icon(Icons.add), onPressed: (){
+            IconButton(icon: const Icon(Icons.add), onPressed: () async {
               if (stepController.text.trim().isNotEmpty) {
-                context.read<TasksCubit>().addStep(task.id, stepController.text.trim());
+                await context.read<TasksCubit>().addStep(task.id, stepController.text.trim());
                 stepController.clear();
               }
             })

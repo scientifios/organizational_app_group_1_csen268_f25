@@ -63,14 +63,21 @@ class MyDayPage extends StatelessWidget {
           final t = tasks[i];
           return ListTile(
             title: Text(t.title),
-            trailing: IconButton(icon: Icon(t.important? Icons.star : Icons.star_border), onPressed: ()=> context.read<TasksCubit>().toggleImportant(t.id)),
+            trailing: IconButton(
+              icon: Icon(t.important? Icons.star : Icons.star_border),
+              onPressed: () {
+                context.read<TasksCubit>().toggleImportant(t.id);
+              },
+            ),
             onTap: ()=> context.push('/tasks/detail/${t.id}'),
           );
         },
       ),
       floatingActionButton: FloatingActionButton(onPressed: () async {
         final name = await promptDialog(context, "Add task to My Day");
-        if (name != null && context.mounted) context.read<TasksCubit>().addTask(name, myDay: true);
+        if (name != null && context.mounted) {
+          await context.read<TasksCubit>().addTask(name, myDay: true);
+        }
       }, child: const Icon(Icons.add)),
     );
   }

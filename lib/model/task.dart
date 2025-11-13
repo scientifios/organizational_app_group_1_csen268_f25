@@ -10,6 +10,8 @@ class Task extends Equatable {
   final String? listId;
   final List<String> steps;
   final String? note;
+  final DateTime? createdAt;
+  final DateTime? updatedAt;
 
   const Task({
     required this.id,
@@ -20,6 +22,8 @@ class Task extends Equatable {
     this.listId,
     this.steps = const [],
     this.note,
+    this.createdAt,
+    this.updatedAt,
   });
 
   Task copyWith({
@@ -31,6 +35,8 @@ class Task extends Equatable {
     String? listId,
     List<String>? steps,
     String? note,
+    DateTime? createdAt,
+    DateTime? updatedAt,
   }) {
     return Task(
       id: id ?? this.id,
@@ -41,9 +47,22 @@ class Task extends Equatable {
       listId: listId ?? this.listId,
       steps: steps ?? this.steps,
       note: note ?? this.note,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
     );
   }
 
   @override
-  List<Object?> get props => [id, title, completed, important, myDay, listId, steps, note];
+  List<Object?> get props => [
+        id,
+        title,
+        completed,
+        important,
+        myDay,
+        listId,
+        steps,
+        note,
+        createdAt,
+        updatedAt,
+      ];
 }

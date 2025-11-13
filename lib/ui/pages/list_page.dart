@@ -22,9 +22,9 @@ class ListPage extends StatelessWidget {
           child: Row(children: [
             Expanded(child: TextField(controller: controller, decoration: const InputDecoration(hintText: 'Add a task'))),
             const SizedBox(width: 8),
-            FilledButton(onPressed: (){
+            FilledButton(onPressed: () async {
               if (controller.text.trim().isNotEmpty) {
-                cubit.addTask(controller.text.trim(), listId: listId);
+                await cubit.addTask(controller.text.trim(), listId: listId);
                 controller.clear();
               }
             }, child: const Text('Add'))
@@ -36,11 +36,23 @@ class ListPage extends StatelessWidget {
           itemBuilder: (context, i){
             final t = items[i];
             return ListTile(
-              leading: Checkbox(value: t.completed, onChanged: (_)=> cubit.toggleComplete(t.id)),
+              leading: Checkbox(
+                value: t.completed,
+                onChanged: (_) {
+                  cubit.toggleComplete(t.id);
+                },
+              ),
               title: Text(t.title),
-              trailing: IconButton(icon: Icon(t.important? Icons.star : Icons.star_border), onPressed: ()=> cubit.toggleImportant(t.id)),
+              trailing: IconButton(
+                icon: Icon(t.important? Icons.star : Icons.star_border),
+                onPressed: () {
+                  cubit.toggleImportant(t.id);
+                },
+              ),
               onTap: ()=> context.push('/tasks/detail/${t.id}'),
-              onLongPress: ()=> cubit.removeTask(t.id),
+              onLongPress: () {
+                cubit.removeTask(t.id);
+              },
             );
           },
         ))
