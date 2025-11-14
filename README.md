@@ -1,10 +1,11 @@
 ﻿# Organizational App
 
-Flutter 3.x UI-only prototype for the Organizational App spec. The app focuses on navigation, layout, and interactive flows without connecting to live services. Sample tasks and lists are injected through `TasksCubit.seedDemoData()` to keep demos consistent.
+Flutter 3.x prototype for the Organizational App spec backed by Firebase Auth and Cloud Firestore. The UI focuses on navigation, layout, and interactive flows, while task data is now stored per-user under `users/{uid}` in Firestore.
 
 ## Highlights
 - Multi-screen routing with `go_router`, including guarded login flows and deep links.
-- Task-centric UI covering My Day, Important, list views, and detail flows with add-note overlays.
+- Task-centric UI covering My Day, Important, list views, and detail flows with add-note overlays persisted in Firestore.
+- Smart My Day that auto-pulls urgent/high-value tasks, plus a priority-driven Important board and searchable/sortable master list.
 - Floating actions for Copilot and group creation showcased through custom dialogs and FAB layouts.
 - Theme management via `flutter_bloc`, supporting light, dark, and system modes out of the box.
 - Settings, notifications, and policy pages included as static content templates for future expansion.
@@ -41,12 +42,16 @@ lib/
 
 ## Getting Started
 1. Install Flutter 3.3 or newer and configure target platforms (`flutter doctor`).
-2. Fetch packages with `flutter pub get` from the repository root.
-3. Launch the UI prototype using `flutter run -d <device>` (for example `chrome`, `windows`, or `android`).
-4. Optional: format with `flutter format .` and analyze with `flutter analyze` before submitting changes.
+2. Run `flutterfire configure` (or manually wire `DefaultFirebaseOptions`) with Firebase Auth + Cloud Firestore enabled for your project.
+3. Create the following collections for each signed-in user:
+   - `users/{uid}/tasks` with fields such as `title`, `completed`, `important`, `myDay`, `listId`, `steps`, `note`, `createdAt`, `updatedAt`.
+   - `users/{uid}/lists` with at least a `name` field.
+4. Fetch packages with `flutter pub get` from the repository root.
+5. Launch the UI prototype using `flutter run -d <device>` (for example `chrome`, `windows`, or `android`).
+6. Optional: format with `flutter format .` and analyze with `flutter analyze` before submitting changes.
 
 ## Development Notes
-- The demo dataset lives in `TasksCubit.seedDemoData()`; adjust it to showcase additional scenarios.
-- Authentication state is mocked, so replace `AuthCubit` with a real service layer when APIs are ready.
+- Task/list CRUD and intelligence features (My Day, Important board, search/filter/sort) now flow through `TasksRepository`, which expects Firebase Auth + Firestore to be configured; update indexes/rules as needed for your project.
+- Authentication is already powered by Firebase Auth via `AuthCubit`.
 - Add new feature pages under `lib/ui/pages/` and register them in `AppRouter.create` to expose routes.
 - Keep Cubit states immutable and rely on `copyWith` patterns to avoid unintended widget rebuilds.

@@ -104,11 +104,6 @@ class HomePage extends StatelessWidget {
                 onTap: () => context.push('/tasks'),
               ),
               const SizedBox(height: 12),
-              _QuickFullRow(
-                icon: Icons.notifications_outlined,
-                label: 'Messages',
-                onTap: () => context.push('/notifications'),
-              ),
             ],
           ),
 
@@ -131,7 +126,7 @@ class HomePage extends StatelessWidget {
                   onPressed: () async {
                     final name = await promptDialog(context, 'New list name');
                     if (name != null && context.mounted) {
-                      context.read<TasksCubit>().addList(name);
+                      await context.read<TasksCubit>().addList(name);
                     }
                   },
                 ),

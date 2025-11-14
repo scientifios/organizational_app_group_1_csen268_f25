@@ -26,29 +26,19 @@ class AppShell extends StatelessWidget {
       body: AnimatedSwitcher(
           duration: const Duration(milliseconds: 250), child: child),
       floatingActionButtonLocation: FloatingActionButtonLocation.endDocked,
-      floatingActionButton: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          FloatingActionButton.small(
-            heroTag: 'copilot',
-            onPressed: () => showDialog(
-              context: context,
-              builder: (_) => const Dialog(
-                insetPadding:
-                    EdgeInsets.symmetric(horizontal: 32, vertical: 120),
-                child: _CopilotSheet(),
-              ),
+      floatingActionButton: Padding(
+        padding: const EdgeInsets.only(bottom: 24),
+        child: FloatingActionButton.small(
+          heroTag: 'copilot',
+          onPressed: () => showDialog(
+            context: context,
+            builder: (_) => const Dialog(
+              insetPadding: EdgeInsets.symmetric(horizontal: 32, vertical: 120),
+              child: _CopilotSheet(),
             ),
-            child: const Icon(Icons.smart_toy_outlined),
           ),
-          const SizedBox(height: 12),
-          FloatingActionButton.extended(
-            heroTag: 'group',
-            onPressed: () => context.push('/create_group'),
-            label: const Text('Group'),
-            icon: const Icon(Icons.group_add_outlined),
-          ),
-        ],
+          child: const Icon(Icons.smart_toy_outlined),
+        ),
       ),
       // bottomNavigationBar: NavigationBar(
       //   selectedIndex: 0, // Only visible on /home now

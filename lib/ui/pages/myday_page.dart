@@ -1,87 +1,79 @@
-// import 'package:flutter/material.dart';
-// import 'package:flutter_bloc/flutter_bloc.dart';
-// import 'package:go_router/go_router.dart';
-// import '../../state/tasks_cubit.dart';
-
-// class MyDayPage extends StatelessWidget {
-//   const MyDayPage({super.key});
-
-//   @override
-//   Widget build(BuildContext context) {
-//     final tasks = context.select((TasksCubit c) => c.state.tasks.where((t)=> t.myDay).toList());
-//     return Scaffold(
-//       appBar: AppBar(leading: BackButton(onPressed: ()=> context.pop()), title: const Text('My Day')),
-//       body: ListView.separated(
-//         itemCount: tasks.length,
-//         separatorBuilder: (_, __) => const Divider(height: 1),
-//         itemBuilder: (context, i){
-//           final t = tasks[i];
-//           return ListTile(
-//             title: Text(t.title),
-//             trailing: IconButton(icon: Icon(t.important? Icons.star : Icons.star_border), onPressed: ()=> context.read<TasksCubit>().toggleImportant(t.id)),
-//             onTap: ()=> context.push('/tasks/detail/${t.id}'),
-//           );
-//         },
-//       ),
-//       floatingActionButton: FloatingActionButton(onPressed: () async {
-//         final name = await _prompt(context);
-//         if (name != null && context.mounted) context.read<TasksCubit>().addTask(name, myDay: true);
-//       }, child: const Icon(Icons.add)),
-//     );
-//   }
-// }
-
-// Future<String?> _prompt(BuildContext context) async {
-//   final c = TextEditingController();
-//   return showDialog<String>(context: context, builder: (_)=> AlertDialog(
-//     title: const Text('Add task to My Day'),
-//     content: TextField(controller: c, autofocus: true),
-//     actions: [TextButton(onPressed: ()=> Navigator.pop(context), child: const Text('Cancel')),
-//       FilledButton(onPressed: ()=> Navigator.pop(context, c.text.trim()), child: const Text('Add'))],
-//   ));
-// }
-
-
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+
+import '../../model/task.dart';
 import '../../state/tasks_cubit.dart';
 import '../widgets/prompt_dialog.dart';
+import '../widgets/task_tile.dart';
 
 class MyDayPage extends StatelessWidget {
   const MyDayPage({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final tasks = context.select((TasksCubit c) => c.state.tasks.where((t)=> t.myDay).toList());
+    final tasks = context.select((TasksCubit c) => _smartMyDay(c.state.tasks));
     return Scaffold(
-      appBar: AppBar(leading: BackButton(onPressed: ()=> context.pop()), title: const Text('My Day')),
+      appBar: AppBar(
+        leading: BackButton(onPressed: () => context.pop()),
+        title: const Text('My Day'),
+      ),
       body: ListView.separated(
-        itemCount: tasks.length,
+        padding: const EdgeInsets.only(bottom: 96),
+        itemCount: tasks.length + 1,
         separatorBuilder: (_, __) => const Divider(height: 1),
-        itemBuilder: (context, i){
-          final t = tasks[i];
-          return ListTile(
-            title: Text(t.title),
-            trailing: IconButton(icon: Icon(t.important? Icons.star : Icons.star_border), onPressed: ()=> context.read<TasksCubit>().toggleImportant(t.id)),
-            onTap: ()=> context.push('/tasks/detail/${t.id}'),
-          );
+        itemBuilder: (context, index) {
+          if (index == 0) {
+            return const ListTile(
+              title: Text('Today\'s focus'),
+              subtitle: Text('Sorted by urgency -> importance -> duration'),
+            );
+          }
+          return TaskTile(task: tasks[index - 1]);
         },
       ),
-      floatingActionButton: FloatingActionButton(onPressed: () async {
-        final name = await promptDialog(context, "Add task to My Day");
-        if (name != null && context.mounted) context.read<TasksCubit>().addTask(name, myDay: true);
-      }, child: const Icon(Icons.add)),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () async {
+          final name = await promptDialog(context, 'Add task to My Day');
+          if (name != null && context.mounted) {
+            await context.read<TasksCubit>().addTask(name, myDay: true);
+          }
+        },
+        child: const Icon(Icons.add),
+      ),
     );
   }
 }
 
-// Future<String?> _prompt(BuildContext context) async {
-//   final c = TextEditingController();
-//   return showDialog<String>(context: context, builder: (_)=> AlertDialog(
-//     title: const Text('Add task to My Day'),
-//     content: TextField(controller: c, autofocus: true),
-//     actions: [TextButton(onPressed: ()=> Navigator.pop(context), child: const Text('Cancel')),
-//       FilledButton(onPressed: ()=> Navigator.pop(context, c.text.trim()), child: const Text('Add'))],
-//   ));
-// }
+List<Task> _smartMyDay(List<Task> tasks) {
+  final today = DateTime.now();
+
+  bool isSameDay(DateTime a, DateTime b) =>
+      a.year == b.year && a.month == b.month && a.day == b.day;
+
+  bool shouldInclude(Task t) {
+    final dueToday = t.dueDate != null && isSameDay(t.dueDate!, today);
+    final overdue = t.dueDate != null && t.dueDate!.isBefore(today);
+    final highValue = t.priority == TaskPriority.high || t.important;
+    return !t.completed && (t.myDay || dueToday || overdue || highValue);
+  }
+
+  int urgencyScore(Task t) {
+    if (t.dueDate == null) return 3;
+    if (t.dueDate!.isBefore(today)) return 0;
+    if (isSameDay(t.dueDate!, today)) return 1;
+    return 2;
+  }
+
+  final selected = tasks.where(shouldInclude).toList();
+  selected.sort((a, b) {
+    final urgent = urgencyScore(a).compareTo(urgencyScore(b));
+    if (urgent != 0) return urgent;
+    final priority = a.priority.weight.compareTo(b.priority.weight);
+    if (priority != 0) return priority;
+    final estimateA = a.estimateMinutes ?? 9999;
+    final estimateB = b.estimateMinutes ?? 9999;
+    return estimateA.compareTo(estimateB);
+  });
+  return selected;
+}
