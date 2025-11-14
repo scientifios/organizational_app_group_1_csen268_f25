@@ -5,6 +5,7 @@ Flutter 3.x prototype for the Organizational App spec backed by Firebase Auth an
 ## Highlights
 - Multi-screen routing with `go_router`, including guarded login flows and deep links.
 - Task-centric UI covering My Day, Important, list views, and detail flows with add-note overlays persisted in Firestore.
+- Smart My Day that auto-pulls urgent/high-value tasks, plus a priority-driven Important board and searchable/sortable master list.
 - Floating actions for Copilot and group creation showcased through custom dialogs and FAB layouts.
 - Theme management via `flutter_bloc`, supporting light, dark, and system modes out of the box.
 - Settings, notifications, and policy pages included as static content templates for future expansion.
@@ -50,7 +51,7 @@ lib/
 6. Optional: format with `flutter format .` and analyze with `flutter analyze` before submitting changes.
 
 ## Development Notes
-- Task/list CRUD now goes through `TasksRepository`, which expects Firebase Auth + Firestore to be configured; update indexes/rules as needed for your project.
+- Task/list CRUD and intelligence features (My Day, Important board, search/filter/sort) now flow through `TasksRepository`, which expects Firebase Auth + Firestore to be configured; update indexes/rules as needed for your project.
 - Authentication is already powered by Firebase Auth via `AuthCubit`.
 - Add new feature pages under `lib/ui/pages/` and register them in `AppRouter.create` to expose routes.
 - Keep Cubit states immutable and rely on `copyWith` patterns to avoid unintended widget rebuilds.

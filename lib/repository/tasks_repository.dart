@@ -39,6 +39,9 @@ class TasksRepository {
     required String title,
     String? listId,
     bool myDay = false,
+    TaskPriority priority = TaskPriority.medium,
+    DateTime? dueDate,
+    int? estimateMinutes,
   }) async {
     final trimmed = title.trim();
     if (trimmed.isEmpty) return;
@@ -53,6 +56,9 @@ class TasksRepository {
       'note': null,
       'createdAt': FieldValue.serverTimestamp(),
       'updatedAt': FieldValue.serverTimestamp(),
+      'priority': priority.name,
+      'dueDate': dueDate != null ? Timestamp.fromDate(dueDate) : null,
+      'estimateMinutes': estimateMinutes,
     });
   }
 
@@ -66,6 +72,10 @@ class TasksRepository {
       'steps': task.steps,
       'note': task.note,
       'updatedAt': FieldValue.serverTimestamp(),
+      'priority': task.priority.name,
+      'dueDate':
+          task.dueDate != null ? Timestamp.fromDate(task.dueDate!) : null,
+      'estimateMinutes': task.estimateMinutes,
     };
 
     await _tasksRef(userId).doc(task.id).update(payload);
@@ -89,6 +99,11 @@ class TasksRepository {
 
   Task _taskFromDoc(QueryDocumentSnapshot<Map<String, dynamic>> doc) {
     final data = doc.data();
+    final rawPriority = data['priority'];
+    final priority = rawPriority is String
+        ? TaskPriorityX.fromString(rawPriority)
+        : TaskPriority.medium;
+
     return Task(
       id: doc.id,
       title: data['title'] as String? ?? '',
@@ -100,6 +115,9 @@ class TasksRepository {
       note: data['note'] as String?,
       createdAt: _toDateTime(data['createdAt']),
       updatedAt: _toDateTime(data['updatedAt']),
+      priority: priority,
+      dueDate: _toDateTime(data['dueDate']),
+      estimateMinutes: (data['estimateMinutes'] as num?)?.toInt(),
     );
   }
 

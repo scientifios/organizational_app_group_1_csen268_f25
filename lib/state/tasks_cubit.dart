@@ -95,7 +95,14 @@ class TasksCubit extends Cubit<TasksState> {
     _listsSubscription = null;
   }
 
-  Future<void> addTask(String title, {String? listId, bool myDay = false}) async {
+  Future<void> addTask(
+    String title, {
+    String? listId,
+    bool myDay = false,
+    TaskPriority priority = TaskPriority.medium,
+    DateTime? dueDate,
+    int? estimateMinutes,
+  }) async {
     final userId = _userId;
     if (userId == null) return;
     final trimmed = title.trim();
@@ -106,6 +113,9 @@ class TasksCubit extends Cubit<TasksState> {
       title: trimmed,
       listId: listId,
       myDay: myDay,
+      priority: priority,
+      dueDate: dueDate,
+      estimateMinutes: estimateMinutes,
     );
 
     _messagesRepository?.addMessage(
@@ -169,6 +179,16 @@ class TasksCubit extends Cubit<TasksState> {
     );
   }
 
+  Future<void> toggleMyDay(String id) async {
+    final userId = _userId;
+    if (userId == null) return;
+    final task = _taskById(id);
+    if (task == null) return;
+
+    final updated = task.copyWith(myDay: !task.myDay);
+    await _tasksRepository.updateTask(userId, updated);
+  }
+
   Future<void> addList(String name) async {
     final userId = _userId;
     if (userId == null) return;
@@ -206,6 +226,42 @@ class TasksCubit extends Cubit<TasksState> {
     final trimmed = note.trim();
     final updated = task.copyWith(note: trimmed.isEmpty ? null : trimmed);
     await _tasksRepository.updateTask(userId, updated);
+  }
+
+  Future<void> setPriority(String taskId, TaskPriority priority) async {
+    final userId = _userId;
+    if (userId == null) return;
+    final task = _taskById(taskId);
+    if (task == null) return;
+
+    await _tasksRepository.updateTask(
+      userId,
+      task.copyWith(priority: priority),
+    );
+  }
+
+  Future<void> setDueDate(String taskId, DateTime? dueDate) async {
+    final userId = _userId;
+    if (userId == null) return;
+    final task = _taskById(taskId);
+    if (task == null) return;
+
+    await _tasksRepository.updateTask(
+      userId,
+      task.copyWith(dueDate: dueDate),
+    );
+  }
+
+  Future<void> setEstimateMinutes(String taskId, int? minutes) async {
+    final userId = _userId;
+    if (userId == null) return;
+    final task = _taskById(taskId);
+    if (task == null) return;
+
+    await _tasksRepository.updateTask(
+      userId,
+      task.copyWith(estimateMinutes: minutes),
+    );
   }
 
   Task? _taskById(String id) {
