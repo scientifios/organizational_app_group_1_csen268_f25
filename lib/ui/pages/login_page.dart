@@ -47,6 +47,7 @@ class _LoginPageState extends State<LoginPage> {
                     ),
                     const SizedBox(height: 16),
                     TextFormField(
+                      key: ValueKey('email_field_${_signup ? 'signup' : 'login'}'),
                       controller: _emailCtrl,
                       decoration: const InputDecoration(labelText: 'Email'),
                       autofillHints: const [AutofillHints.username],
@@ -61,6 +62,7 @@ class _LoginPageState extends State<LoginPage> {
                     ),
                     const SizedBox(height: 8),
                     TextFormField(
+                      key: ValueKey('password_field_${_signup ? 'signup' : 'login'}'),
                       controller: _passwordCtrl,
                       decoration: InputDecoration(
                         labelText: 'Password',
@@ -105,9 +107,7 @@ class _LoginPageState extends State<LoginPage> {
                       ),
                     ),
                     TextButton(
-                      onPressed: _submitting
-                          ? null
-                          : () => setState(() => _signup = !_signup),
+                      onPressed: _submitting ? null : () => _switchMode(!_signup),
                       child: Text(
                         _signup
                             ? 'Have an account? Login'
@@ -134,6 +134,16 @@ class _LoginPageState extends State<LoginPage> {
           email: _emailCtrl.text.trim(),
           password: _passwordCtrl.text.trim(),
         );
+        await auth.logout();
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Account created. Please log in.'),
+          ),
+        );
+        _clearFormAndSetMode(signupMode: false);
+        context.go('/login');
+        return;
       } else {
         await auth.login(
           email: _emailCtrl.text.trim(),
@@ -152,5 +162,24 @@ class _LoginPageState extends State<LoginPage> {
         setState(() => _submitting = false);
       }
     }
+  }
+
+  void _switchMode(bool signupMode) {
+    _clearFormAndSetMode(signupMode: signupMode);
+  }
+
+  void _clearFormAndSetMode({required bool signupMode}) {
+    if (!mounted) return;
+    FocusScope.of(context).unfocus();
+    setState(() {
+      _signup = signupMode;
+      _resetFormFields();
+      _formKey.currentState?.reset();
+    });
+  }
+
+  void _resetFormFields() {
+    _emailCtrl.clear();
+    _passwordCtrl.clear();
   }
 }

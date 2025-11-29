@@ -1,6 +1,9 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:organizational_app_group_1_csen268_f25/ui/pages/service_items_page.dart';
 import '../../state/theme_cubit.dart';
 import '../../state/auth_cubit.dart';
@@ -57,11 +60,21 @@ class SettingsPage extends StatelessWidget {
                 ),
                 onTap: () async{
                   final source = await _chooseAvatarSourceDialog(context);
-                  if (source != null){
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Avatar: $source (demo only)'))
-                      );
-                  }
+                  if (source == null) return;
+
+                  final picker = ImagePicker();
+                  final picked = await picker.pickImage(
+                    source: source,
+                    maxWidth: 1024,
+                    maxHeight: 1024,
+                  );
+                  if (picked == null) return;
+
+                  await context.read<AuthCubit>().updateAvatar(File(picked.path));
+                  if (!context.mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Avatar updated')),
+                  );
                 },
               ),
               const Divider(height: 0),
@@ -76,9 +89,11 @@ class SettingsPage extends StatelessWidget {
                     hint: 'Enter nickname',
                   );
                   if (text != null){
+                    await context.read<AuthCubit>().updateNickname(text);
+                    if (!context.mounted) return;
                     ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Avatar: $text (demo only)'))
-                      );
+                      const SnackBar(content: Text('Nickname updated')),
+                    );
                   }                  
                 }
               ),
@@ -86,7 +101,9 @@ class SettingsPage extends StatelessWidget {
               const _SectionHeader('Account Setting'),
               _SettingsTile(
                 title: 'Mobile Phone',
-                value: user?.phoneNumber ?? 'Add phone',
+                value: (user?.phoneNumber ?? '').isNotEmpty
+                    ? user!.phoneNumber
+                    : '',
                 onTap: () async{
                   final phone = await _editTextDialog(
                     context, 
@@ -96,9 +113,11 @@ class SettingsPage extends StatelessWidget {
                     keyboardType: TextInputType.phone,
                   );
                   if (phone != null){
+                    await context.read<AuthCubit>().updatePhone(phone);
+                    if (!context.mounted) return;
                     ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Avatar: $phone (demo only)'))
-                      );
+                      const SnackBar(content: Text('Phone updated')),
+                    );
                   }
                 }
               ),
@@ -121,32 +140,7 @@ class SettingsPage extends StatelessWidget {
               const Divider(height: 0),
               _SettingsTile(
                 title: 'Cancel User',
-                onTap: () async{
-                  final ok = await showDialog<bool>(
-                    context: context,
-                    builder: (_) => AlertDialog(
-                      title: const Text('Cancel User'),
-                      content: const Text(
-                        'This action is irreversible. Do you want to cancel this user?'
-                      ),
-                      actions: [
-                        TextButton(
-                          onPressed: () => Navigator.pop(context, false), 
-                          child: const Text('No'),
-                        ),
-                        FilledButton.tonal(
-                          onPressed: () => Navigator.pop(context, true), 
-                          child: const Text('Yes, cancel'),
-                        ),
-                      ],
-                    )
-                  );
-                  if (ok == true){
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('User cancelled (demo only)'),)
-                    );
-                  }
-                }
+                onTap: () => _handleCancelUser(context),
               ),
               const SizedBox(height: 16),
               const _SectionHeader('Authority Setting'),
@@ -184,8 +178,9 @@ class SettingsPage extends StatelessWidget {
                 child: Center(
                   child: TextButton(
                     style: TextButton.styleFrom(foregroundColor: Colors.red),
-                    onPressed: () {
-                      context.read<AuthCubit>().logout();
+                    onPressed: () async {
+                      await context.read<AuthCubit>().logout();
+                      if (!context.mounted) return;
                       context.go('/login');
                     },
                     child: const Text('Logout'),
@@ -335,21 +330,21 @@ Future<String?> _editTextDialog(
   return result;
 }
 
-Future<String?> _chooseAvatarSourceDialog(BuildContext context) {
-  return showDialog<String>(
+Future<ImageSource?> _chooseAvatarSourceDialog(BuildContext context) {
+  return showDialog<ImageSource>(
     context: context,
     builder: (_) => SimpleDialog(
       title: const Text('Change Avatar'),
       children: [
         SimpleDialogOption(
-          onPressed: () => Navigator.pop(context, 'Take Photo'),
+          onPressed: () => Navigator.pop(context, ImageSource.camera),
           child: const ListTile(
             leading: Icon(Icons.photo_camera),
             title: Text('Take Photo'),
           ),
         ),
         SimpleDialogOption(
-          onPressed: () => Navigator.pop(context, 'Choose from Gallery'),
+          onPressed: () => Navigator.pop(context, ImageSource.gallery),
           child: const ListTile(
             leading: Icon(Icons.photo_library),
             title: Text('Choose from Gallery'),
@@ -365,15 +360,203 @@ Future<String?> _chooseAvatarSourceDialog(BuildContext context) {
   );
 }
 
-class ChangePasswordPage extends StatelessWidget {
-  const ChangePasswordPage({super.key});
+Future<void> _handleCancelUser(BuildContext context) async {
+  final success = await _showCancelUserDialog(context);
+  if (success == true && context.mounted) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('User cancelled successfully.')),
+    );
+    context.go('/login');
+  }
+}
+
+Future<bool?> _showCancelUserDialog(BuildContext parentContext) {
+  return showDialog<bool>(
+    context: parentContext,
+    barrierDismissible: false,
+    builder: (_) => _CancelUserDialog(parentContext: parentContext),
+  );
+}
+
+class _CancelUserDialog extends StatefulWidget {
+  const _CancelUserDialog({required this.parentContext});
+
+  final BuildContext parentContext;
+
+  @override
+  State<_CancelUserDialog> createState() => _CancelUserDialogState();
+}
+
+class _CancelUserDialogState extends State<_CancelUserDialog> {
+  final _controller = TextEditingController();
+  String? _errorText;
+  bool _loading = false;
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
+    final password = _controller.text.trim();
+    if (password.isEmpty) {
+      setState(() => _errorText = 'Password is required.');
+      return;
+    }
+
+    setState(() {
+      _loading = true;
+      _errorText = null;
+    });
+
+    try {
+      await widget.parentContext
+          .read<AuthCubit>()
+          .deleteAccount(password: password);
+      if (!mounted) return;
+      Navigator.of(context).pop(true);
+    } on AuthFailure catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _errorText = e.message;
+        _loading = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _errorText = 'Failed to cancel user.';
+        _loading = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    final oldCtrl = TextEditingController();
-    final newCtrl = TextEditingController();
-    final confirmCtrl = TextEditingController();
+    return AlertDialog(
+      title: const Text('Cancel User'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'This action is irreversible. Do you want to cancel this user?',
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _controller,
+            obscureText: true,
+            decoration: const InputDecoration(labelText: 'Confirm Password'),
+            autofocus: true,
+          ),
+          if (_errorText != null) ...[
+            const SizedBox(height: 8),
+            Text(
+              _errorText!,
+              style: TextStyle(color: Theme.of(context).colorScheme.error),
+            ),
+          ],
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: _loading ? null : () => Navigator.of(context).pop(false),
+          child: const Text('No'),
+        ),
+        FilledButton.tonal(
+          onPressed: _loading ? null : _submit,
+          child: _loading
+              ? const SizedBox(
+                  height: 20,
+                  width: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Text('Cancel User'),
+        ),
+      ],
+    );
+  }
+}
 
+class ChangePasswordPage extends StatefulWidget {
+  const ChangePasswordPage({super.key});
+
+  @override
+  State<ChangePasswordPage> createState() => _ChangePasswordPageState();
+}
+
+class _ChangePasswordPageState extends State<ChangePasswordPage> {
+  final _oldCtrl = TextEditingController();
+  final _newCtrl = TextEditingController();
+  final _confirmCtrl = TextEditingController();
+  bool _submitting = false;
+
+  @override
+  void dispose() {
+    _oldCtrl.dispose();
+    _newCtrl.dispose();
+    _confirmCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _handleSubmit() async {
+    final messenger = ScaffoldMessenger.of(context);
+    final current = _oldCtrl.text.trim();
+    final newPassword = _newCtrl.text.trim();
+    final confirm = _confirmCtrl.text.trim();
+
+    if (current.isEmpty || newPassword.isEmpty || confirm.isEmpty) {
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Please fill in all fields.')),
+      );
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      messenger.showSnackBar(
+        const SnackBar(
+          content: Text('Password must be at least 6 characters long.'),
+        ),
+      );
+      return;
+    }
+
+    if (newPassword != confirm) {
+      messenger.showSnackBar(
+        const SnackBar(
+          content: Text('New password and confirmation do not match.'),
+        ),
+      );
+      return;
+    }
+
+    FocusScope.of(context).unfocus();
+    setState(() => _submitting = true);
+
+    try {
+      await context.read<AuthCubit>().changePassword(
+            currentPassword: current,
+            newPassword: newPassword,
+          );
+      if (!mounted) return;
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Password updated successfully.')),
+      );
+      Navigator.of(context).pop();
+    } on AuthFailure catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text(e.message)));
+    } catch (_) {
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Unable to change password.')),
+      );
+    } finally {
+      if (!mounted) return;
+      setState(() => _submitting = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         leading: BackButton(onPressed: () => Navigator.pop(context)),
@@ -381,34 +564,43 @@ class ChangePasswordPage extends StatelessWidget {
       ),
       body: Padding(
         padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+        child: ListView(
           children: [
             TextField(
-              controller: oldCtrl,
+              controller: _oldCtrl,
               obscureText: true,
               decoration: const InputDecoration(labelText: 'Old Password'),
+              textInputAction: TextInputAction.next,
             ),
             const SizedBox(height: 12),
             TextField(
-              controller: newCtrl,
+              controller: _newCtrl,
               obscureText: true,
               decoration: const InputDecoration(labelText: 'New Password'),
+              textInputAction: TextInputAction.next,
             ),
             const SizedBox(height: 12),
             TextField(
-              controller: confirmCtrl,
+              controller: _confirmCtrl,
               obscureText: true,
               decoration: const InputDecoration(labelText: 'Confirm Password'),
+              textInputAction: TextInputAction.done,
+              onSubmitted: (_) {
+                if (!_submitting) {
+                  _handleSubmit();
+                }
+              },
             ),
             const SizedBox(height: 24),
             FilledButton(
-              onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Change password (demo only)')),
-                );
-              },
-              child: const Text('Confirm'),
+              onPressed: _submitting ? null : _handleSubmit,
+              child: _submitting
+                  ? const SizedBox(
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Text('Confirm'),
             ),
           ],
         ),
