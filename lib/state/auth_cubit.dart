@@ -48,6 +48,8 @@ class AuthCubit extends Cubit<AuthState> {
         email: email,
         password: password,
       );
+      // Emit authenticated state immediately so router guards see it without a second tap.
+      await _onUserChanged(_firebaseAuth.currentUser);
     } on fb_auth.FirebaseAuthException catch (e) {
       throw AuthFailure(e.message ?? 'Unable to log in.');
     }
