@@ -12,6 +12,7 @@ import 'repository/push_token_repository.dart';
 import 'repository/reminders_repository.dart';
 import 'repository/tasks_repository.dart';
 import 'router/app_router.dart';
+import 'services/profile_repository.dart';
 import 'services/push_notification_service.dart';
 import 'state/auth_cubit.dart';
 import 'state/messages_cubit.dart';
@@ -79,6 +80,7 @@ class _OrgAppState extends State<OrgApp> {
         RepositoryProvider(create: (_) => PushTokenRepository()),
         RepositoryProvider(create: (_) => RemindersRepository()),
         RepositoryProvider(create: (_) => TasksRepository()),
+        RepositoryProvider(create: (_) => ProfileRepository()),
         RepositoryProvider(
           create: (context) => PushNotificationService(
             tokenRepository: context.read<PushTokenRepository>(),
@@ -89,7 +91,10 @@ class _OrgAppState extends State<OrgApp> {
         providers: [
           BlocProvider(create: (_) => ThemeCubit()),
           BlocProvider(
-            create: (_) => AuthCubit(firebaseAuth: FirebaseAuth.instance),
+            create: (context) => AuthCubit(
+              firebaseAuth: FirebaseAuth.instance,
+              profileRepository: context.read<ProfileRepository>(),
+            ),
           ),
           BlocProvider(
             create: (context) => TasksCubit(

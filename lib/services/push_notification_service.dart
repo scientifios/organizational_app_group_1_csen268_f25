@@ -66,6 +66,7 @@ class PushNotificationService {
     final userId = _currentUserId;
     if (userId == null) return;
     final token = await _messaging.getToken();
+    print("Your FCM Token is, $token");
     if (token == null) return;
     _lastToken = token;
     debugPrint('FCM token: $token');

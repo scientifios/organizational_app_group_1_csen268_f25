@@ -13,6 +13,25 @@ class User {
   final String avatarUrl;
   final String phoneNumber;
 
+  factory User.fromMap(String id, Map<String, dynamic> data) {
+    return User(
+      id: id,
+      email: data['email'] as String? ?? '',
+      nickname: data['nickname'] as String? ?? '',
+      avatarUrl: data['avatarUrl'] as String? ?? '',
+      phoneNumber: data['phoneNumber'] as String? ?? '',
+    );
+  }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'email': email,
+      'nickname': nickname,
+      'avatarUrl': avatarUrl,
+      'phoneNumber': phoneNumber,
+    };
+  }
+
   User copyWith({
     String? id,
     String? email,
