@@ -1,1 +1,51 @@
-{"hosting":{"public":"build/web","ignore":["firebase.json","**/.*","**/node_modules/**"],"rewrites":[{"source":"**","destination":"/index.html"}]},"flutter":{"platforms":{"android":{"default":{"projectId":"organizationalapp","appId":"1:614408924683:android:74b90225191ea88805610e","fileOutput":"android/app/google-services.json"}},"dart":{"lib/firebase_options.dart":{"projectId":"organizationalapp","configurations":{"android":"1:614408924683:android:74b90225191ea88805610e","ios":"1:614408924683:ios:d68453ee6e5140e205610e","web":"1:614408924683:web:69d71294605cfa2d05610e"}}}}}}
+{
+  "hosting": {
+    "public": "build/web",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "rewrites": [
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
+    ]
+  },
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "organizationalapp",
+          "appId": "1:614408924683:android:74b90225191ea88805610e",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "organizationalapp",
+          "configurations": {
+            "android": "1:614408924683:android:74b90225191ea88805610e",
+            "ios": "1:614408924683:ios:d68453ee6e5140e205610e",
+            "web": "1:614408924683:web:69d71294605cfa2d05610e"
+          }
+        }
+      }
+    }
+  },
+  "functions": [
+    {
+      "source": "functions",
+      "codebase": "default",
+      "disallowLegacyRuntimeConfig": true,
+      "ignore": [
+        "node_modules",
+        ".git",
+        "firebase-debug.log",
+        "firebase-debug.*.log",
+        "*.local"
+      ]
+    }
+  ]
+}

@@ -61,11 +61,7 @@ class ListPage extends StatelessWidget {
               ),
             );
             if (name != null && name.trim().isNotEmpty) {
-              await cubit.addTask(
-                name.trim(),
-                listId: listId,
-                myDay: true,
-              );
+              await cubit.addTask(name.trim(), listId: listId);
             }
             controller.clear();
           },

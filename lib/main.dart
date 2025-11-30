@@ -1,4 +1,4 @@
-import 'package:firebase_auth/firebase_auth.dart';
+﻿import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
@@ -7,7 +7,9 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'firebase_options.dart';
 import 'repository/messages_repository.dart';
+import 'repository/notifications_repository.dart';
 import 'repository/push_token_repository.dart';
+import 'repository/reminders_repository.dart';
 import 'repository/tasks_repository.dart';
 import 'router/app_router.dart';
 import 'services/push_notification_service.dart';
@@ -23,6 +25,7 @@ Future<void> main() async {
   runApp(const OrgApp());
 }
 
+@pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   if (Firebase.apps.isEmpty) {
     final options = DefaultFirebaseOptions.currentPlatform;
@@ -72,7 +75,9 @@ class _OrgAppState extends State<OrgApp> {
     return MultiRepositoryProvider(
       providers: [
         RepositoryProvider(create: (_) => MessagesRepository()),
+        RepositoryProvider(create: (_) => NotificationsRepository()),
         RepositoryProvider(create: (_) => PushTokenRepository()),
+        RepositoryProvider(create: (_) => RemindersRepository()),
         RepositoryProvider(create: (_) => TasksRepository()),
         RepositoryProvider(
           create: (context) => PushNotificationService(
@@ -89,7 +94,9 @@ class _OrgAppState extends State<OrgApp> {
           BlocProvider(
             create: (context) => TasksCubit(
               tasksRepository: context.read<TasksRepository>(),
+              remindersRepository: context.read<RemindersRepository>(),
               messagesRepository: context.read<MessagesRepository>(),
+              notificationsRepository: context.read<NotificationsRepository>(),
               authCubit: context.read<AuthCubit>(),
             ),
           ),
@@ -133,3 +140,4 @@ class _OrgAppState extends State<OrgApp> {
     );
   }
 }
+

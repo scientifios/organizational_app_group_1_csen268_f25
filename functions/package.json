@@ -1,0 +1,16 @@
+{
+  "name": "task-reminders",
+  "description": "Cloud Functions for task reminder notifications",
+  "engines": {
+    "node": "20"
+  },
+  "scripts": {
+    "lint": "eslint .",
+    "build": "echo \"No build step\"",
+    "deploy": "firebase deploy --only functions"
+  },
+  "dependencies": {
+    "firebase-admin": "^12.0.0",
+    "firebase-functions": "^4.5.0"
+  }
+}

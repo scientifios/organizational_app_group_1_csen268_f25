@@ -42,6 +42,7 @@ class TasksRepository {
     TaskPriority priority = TaskPriority.medium,
     DateTime? dueDate,
     int? estimateMinutes,
+    int notifyBeforeDays = 1,
   }) async {
     final trimmed = title.trim();
     if (trimmed.isEmpty) return;
@@ -59,6 +60,7 @@ class TasksRepository {
       'priority': priority.name,
       'dueDate': dueDate != null ? Timestamp.fromDate(dueDate) : null,
       'estimateMinutes': estimateMinutes,
+      'notifyBeforeDays': notifyBeforeDays,
     });
   }
 
@@ -76,6 +78,7 @@ class TasksRepository {
       'dueDate':
           task.dueDate != null ? Timestamp.fromDate(task.dueDate!) : null,
       'estimateMinutes': task.estimateMinutes,
+      'notifyBeforeDays': task.notifyBeforeDays,
     };
 
     await _tasksRef(userId).doc(task.id).update(payload);
@@ -118,6 +121,7 @@ class TasksRepository {
       priority: priority,
       dueDate: _toDateTime(data['dueDate']),
       estimateMinutes: (data['estimateMinutes'] as num?)?.toInt(),
+      notifyBeforeDays: (data['notifyBeforeDays'] as num?)?.toInt() ?? 1,
     );
   }
 
