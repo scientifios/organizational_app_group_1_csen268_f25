@@ -252,13 +252,31 @@ class _ReminderSection extends StatelessWidget {
   Widget build(BuildContext context) {
     final label = _reminderLabel(task.notifyBeforeDays);
     final items = const [
-      DropdownMenuItem(value: 0, child: Text('Off')),
-      DropdownMenuItem(value: -3, child: Text('Repeat every 5 minutes until due (test)')),
-      DropdownMenuItem(value: -2, child: Text('5 minutes from now (test)')),
-      DropdownMenuItem(value: -1, child: Text('At due time (test)')),
-      DropdownMenuItem(value: 1, child: Text('1 day')),
-      DropdownMenuItem(value: 2, child: Text('2 days')),
-      DropdownMenuItem(value: 3, child: Text('3 days')),
+      DropdownMenuItem(value: 0, child: Text('Off', overflow: TextOverflow.ellipsis)),
+      DropdownMenuItem(
+        value: -3,
+        child: Text(
+          'Repeat every 5 minutes until due (test)',
+          overflow: TextOverflow.ellipsis,
+        ),
+      ),
+      DropdownMenuItem(
+        value: -2,
+        child: Text(
+          '5 minutes from now (test)',
+          overflow: TextOverflow.ellipsis,
+        ),
+      ),
+      DropdownMenuItem(
+        value: -1,
+        child: Text(
+          'At due time (test)',
+          overflow: TextOverflow.ellipsis,
+        ),
+      ),
+      DropdownMenuItem(value: 1, child: Text('1 day', overflow: TextOverflow.ellipsis)),
+      DropdownMenuItem(value: 2, child: Text('2 days', overflow: TextOverflow.ellipsis)),
+      DropdownMenuItem(value: 3, child: Text('3 days', overflow: TextOverflow.ellipsis)),
     ];
 
     return Column(
@@ -281,6 +299,7 @@ class _ReminderSection extends StatelessWidget {
           decoration: const InputDecoration(
             labelText: 'Choose reminder',
           ),
+          isExpanded: true,
           onChanged: (value) {
             if (value != null) {
               context.read<TasksCubit>().setNotifyBeforeDays(task.id, value);

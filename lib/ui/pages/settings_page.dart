@@ -405,135 +405,249 @@ Future<ImageSource?> _chooseAvatarSourceDialog(BuildContext context) async {
   );
 }
 
-class ChangePasswordPage extends StatelessWidget {
-  const ChangePasswordPage({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return const _ChangePasswordView();
+Future<void> _handleCancelUser(BuildContext context) async {
+  final success = await _showCancelUserDialog(context);
+  if (success == true && context.mounted) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('User cancelled successfully.')),
+    );
+    context.go('/login');
   }
 }
 
-class _ChangePasswordView extends StatefulWidget {
-  const _ChangePasswordView();
-
-  @override
-  State<_ChangePasswordView> createState() => _ChangePasswordViewState();
+Future<bool?> _showCancelUserDialog(BuildContext parentContext) {
+  return showDialog<bool>(
+    context: parentContext,
+    barrierDismissible: false,
+    builder: (_) => _CancelUserDialog(parentContext: parentContext),
+  );
 }
 
-class _ChangePasswordViewState extends State<_ChangePasswordView> {
-  final _formKey = GlobalKey<FormState>();
-  final _currentCtrl = TextEditingController();
+class _CancelUserDialog extends StatefulWidget {
+  const _CancelUserDialog({required this.parentContext});
+
+  final BuildContext parentContext;
+
+  @override
+  State<_CancelUserDialog> createState() => _CancelUserDialogState();
+}
+
+class _CancelUserDialogState extends State<_CancelUserDialog> {
+  final _controller = TextEditingController();
+  String? _errorText;
+  bool _loading = false;
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
+    final password = _controller.text.trim();
+    if (password.isEmpty) {
+      setState(() => _errorText = 'Password is required.');
+      return;
+    }
+
+    setState(() {
+      _loading = true;
+      _errorText = null;
+    });
+
+    try {
+      await widget.parentContext.read<AuthCubit>().deleteAccount(password: password);
+      if (!mounted) return;
+      Navigator.of(context).pop(true);
+    } on AuthFailure catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _errorText = e.message;
+        _loading = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _errorText = 'Failed to cancel user.';
+        _loading = false;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Cancel User'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'This action is irreversible. Do you want to cancel this user?',
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _controller,
+            obscureText: true,
+            decoration: const InputDecoration(labelText: 'Confirm Password'),
+            autofocus: true,
+          ),
+          if (_errorText != null) ...[
+            const SizedBox(height: 8),
+            Text(
+              _errorText!,
+              style: TextStyle(color: Theme.of(context).colorScheme.error),
+            ),
+          ],
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: _loading ? null : () => Navigator.of(context).pop(false),
+          child: const Text('No'),
+        ),
+        FilledButton.tonal(
+          onPressed: _loading ? null : _submit,
+          child: _loading
+              ? const SizedBox(
+                  height: 20,
+                  width: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Text('Cancel User'),
+        ),
+      ],
+    );
+  }
+}
+
+class ChangePasswordPage extends StatefulWidget {
+  const ChangePasswordPage({super.key});
+
+  @override
+  State<ChangePasswordPage> createState() => _ChangePasswordPageState();
+}
+
+class _ChangePasswordPageState extends State<ChangePasswordPage> {
+  final _oldCtrl = TextEditingController();
   final _newCtrl = TextEditingController();
+  final _confirmCtrl = TextEditingController();
   bool _submitting = false;
 
   @override
   void dispose() {
-    _currentCtrl.dispose();
+    _oldCtrl.dispose();
     _newCtrl.dispose();
+    _confirmCtrl.dispose();
     super.dispose();
+  }
+
+  Future<void> _handleSubmit() async {
+    final messenger = ScaffoldMessenger.of(context);
+    final current = _oldCtrl.text.trim();
+    final newPassword = _newCtrl.text.trim();
+    final confirm = _confirmCtrl.text.trim();
+
+    if (current.isEmpty || newPassword.isEmpty || confirm.isEmpty) {
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Please fill in all fields.')),
+      );
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      messenger.showSnackBar(
+        const SnackBar(
+          content: Text('Password must be at least 6 characters long.'),
+        ),
+      );
+      return;
+    }
+
+    if (newPassword != confirm) {
+      messenger.showSnackBar(
+        const SnackBar(
+          content: Text('New password and confirmation do not match.'),
+        ),
+      );
+      return;
+    }
+
+    FocusScope.of(context).unfocus();
+    setState(() => _submitting = true);
+
+    try {
+      await context.read<AuthCubit>().changePassword(
+            currentPassword: current,
+            newPassword: newPassword,
+          );
+      if (!mounted) return;
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Password updated successfully.')),
+      );
+      Navigator.of(context).pop();
+    } on AuthFailure catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text(e.message)));
+    } catch (_) {
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Unable to change password.')),
+      );
+    } finally {
+      if (!mounted) return;
+      setState(() => _submitting = false);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Change Password')),
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              children: [
-                TextFormField(
-                  controller: _currentCtrl,
-                  decoration: const InputDecoration(
-                    labelText: 'Current password',
-                    prefixIcon: Icon(Icons.lock_outline),
-                  ),
-                  obscureText: true,
-                  validator: (v) {
-                    if (v == null || v.isEmpty) return 'Enter current password';
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: _newCtrl,
-                  decoration: const InputDecoration(
-                    labelText: 'New password',
-                    prefixIcon: Icon(Icons.lock),
-                  ),
-                  obscureText: true,
-                  validator: (v) {
-                    if (v == null || v.isEmpty) return 'Enter new password';
-                    if (v.length < 6) return 'At least 6 characters';
-                    if (v == _currentCtrl.text) return 'Use a different password';
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 24),
-                SizedBox(
-                  width: double.infinity,
-                  child: FilledButton(
-                    onPressed: _submitting ? null : () => _submit(context),
-                    child: _submitting
-                        ? const SizedBox(
-                            height: 18, width: 18, child: CircularProgressIndicator(strokeWidth: 2))
-                        : const Text('Update password'),
-                  ),
-                ),
-              ],
+      appBar: AppBar(
+        leading: BackButton(onPressed: () => Navigator.pop(context)),
+        title: const Text('Change Password'),
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(16),
+        child: ListView(
+          children: [
+            TextField(
+              controller: _oldCtrl,
+              obscureText: true,
+              decoration: const InputDecoration(labelText: 'Old Password'),
+              textInputAction: TextInputAction.next,
             ),
-          ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _newCtrl,
+              obscureText: true,
+              decoration: const InputDecoration(labelText: 'New Password'),
+              textInputAction: TextInputAction.next,
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _confirmCtrl,
+              obscureText: true,
+              decoration: const InputDecoration(labelText: 'Confirm Password'),
+              textInputAction: TextInputAction.done,
+              onSubmitted: (_) {
+                if (!_submitting) {
+                  _handleSubmit();
+                }
+              },
+            ),
+            const SizedBox(height: 24),
+            FilledButton(
+              onPressed: _submitting ? null : _handleSubmit,
+              child: _submitting
+                  ? const SizedBox(
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Text('Confirm'),
+            ),
+          ],
         ),
       ),
     );
-  }
-
-  Future<void> _submit(BuildContext context) async {
-    if (!_formKey.currentState!.validate()) return;
-    setState(() => _submitting = true);
-    try {
-      await context.read<AuthCubit>().changePassword(
-            currentPassword: _currentCtrl.text.trim(),
-            newPassword: _newCtrl.text.trim(),
-          );
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Password updated. Please log in again.')),
-      );
-      await context.read<AuthCubit>().logout();
-      if (!mounted) return;
-      context.go('/login');
-    } on AuthFailure catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
-      }
-    } finally {
-      if (mounted) setState(() => _submitting = false);
-    }
-  }
-}
-
-Future<void> _handleCancelUser(BuildContext context) async {
-  final password = await _editTextDialog(
-    context,
-    title: 'Confirm password to delete account',
-    initial: '',
-    hint: 'Password',
-  );
-  if (password == null || password.isEmpty) return;
-  try {
-    await context.read<AuthCubit>().deleteAccount(password: password);
-    if (!context.mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Account deleted.')),
-    );
-    context.go('/login');
-  } on AuthFailure catch (e) {
-    if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
-    }
   }
 }
