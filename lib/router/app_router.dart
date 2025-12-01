@@ -7,12 +7,19 @@ import '../ui/pages/settings_page.dart';
 import '../ui/pages/task_detail_page.dart';
 import '../ui/pages/add_note_page.dart';
 import '../ui/pages/create_group_page.dart';
+import '../ui/pages/splash_page.dart';
 
 class AppRouter {
   static GoRouter create(AuthCubit auth) {
     return GoRouter(
-      initialLocation: '/login',
+      initialLocation: '/splash',
       routes: [
+        GoRoute(
+          path: '/splash',
+          name: 'splash',
+          pageBuilder: (context, state) =>
+              const NoTransitionPage(child: SplashPage()),
+        ),
         GoRoute(
           path: '/login',
           name: 'login',
@@ -66,9 +73,10 @@ class AppRouter {
       ],
       redirect: (c, s) {
         final loggingIn = s.fullPath == '/login';
+        final onSplash = s.fullPath == '/splash';
         final authed = auth.state is Authenticated;
-        if (!authed && !loggingIn) return '/login';
-        if (authed && loggingIn) return '/home';
+        if (!authed && !(loggingIn || onSplash)) return '/login';
+        if (authed && (loggingIn || onSplash)) return '/home';
         return null;
       },
     );
