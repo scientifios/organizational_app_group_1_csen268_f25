@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+
+import '../../state/auth_cubit.dart';
 
 class AppShell extends StatelessWidget {
   final Widget child;
@@ -10,9 +13,27 @@ class AppShell extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Organizational App'),
-        leading: IconButton(
-          icon: const CircleAvatar(child: Icon(Icons.person, size: 18)),
-          onPressed: () => context.push('/settings'),
+        leading: BlocBuilder<AuthCubit, AuthState>(
+          builder: (context, state) {
+            final user = state is Authenticated ? state.user : null;
+            final avatarUrl = user?.avatarUrl ?? '';
+            final hasAvatar = avatarUrl.isNotEmpty;
+            return IconButton(
+              icon: hasAvatar
+                  ? CircleAvatar(
+                      radius: 16,
+                      backgroundImage: NetworkImage(avatarUrl),
+                      backgroundColor:
+                          Theme.of(context).colorScheme.surfaceVariant,
+                    )
+                  : const CircleAvatar(
+                      radius: 16,
+                      child: Icon(Icons.person, size: 18),
+                    ),
+              onPressed: () => context.push('/settings'),
+              tooltip: 'Settings',
+            );
+          },
         ),
         actions: [
           IconButton(
