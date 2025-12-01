@@ -17,6 +17,7 @@ class AppShell extends StatefulWidget {
 
 class _AppShellState extends State<AppShell> {
   int _index = 0;
+  late final PageController _pageController;
 
   final _pages = const [
     HomePage(),
@@ -25,14 +26,39 @@ class _AppShellState extends State<AppShell> {
     NotificationsPage(),
   ];
 
-  void setIndex(int i) => setState(() => _index = i);
+  @override
+  void initState() {
+    super.initState();
+    _pageController = PageController(initialPage: _index);
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  void _setIndex(int i) {
+    if (i == _index) return;
+    setState(() => _index = i);
+    _pageController.animateToPage(
+      i,
+      duration: const Duration(milliseconds: 200),
+      curve: Curves.easeInOutCubic,
+    );
+  }
+
+  void _onPageChanged(int i) {
+    if (i != _index) {
+      setState(() => _index = i);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final isWide = MediaQuery.of(context).size.width >= 700;
     return BlocBuilder<TasksCubit, TasksState>(
       builder: (context, state) {
-        final content = IndexedStack(index: _index, children: _pages);
         final navDestinations = const [
           NavigationDestination(icon: Icon(Icons.home_outlined), label: 'Home'),
           NavigationDestination(icon: Icon(Icons.wb_sunny_outlined), label: 'My Day'),
@@ -40,8 +66,15 @@ class _AppShellState extends State<AppShell> {
           NavigationDestination(icon: Icon(Icons.notifications_outlined), label: 'Messages'),
         ];
 
+        final content = PageView(
+          controller: _pageController,
+          physics: const NeverScrollableScrollPhysics(),
+          onPageChanged: _onPageChanged,
+          children: _pages,
+        );
+
         final scope = _TabScope(
-          setIndex: setIndex,
+          setIndex: _setIndex,
           index: _index,
           child: content,
         );
@@ -52,7 +85,7 @@ class _AppShellState extends State<AppShell> {
               children: [
                 NavigationRail(
                   selectedIndex: _index,
-                  onDestinationSelected: (i) => setIndex(i),
+                  onDestinationSelected: (i) => _setIndex(i),
                   labelType: NavigationRailLabelType.all,
                   destinations: const [
                     NavigationRailDestination(
@@ -87,9 +120,13 @@ class _AppShellState extends State<AppShell> {
         return Scaffold(
           body: scope,
           bottomNavigationBar: NavigationBar(
+            height: 68,
             selectedIndex: _index,
-            onDestinationSelected: (i) => setIndex(i),
+            onDestinationSelected: (i) => _setIndex(i),
             destinations: navDestinations,
+            indicatorShape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(14),
+            ),
           ),
         );
       },

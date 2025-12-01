@@ -29,7 +29,7 @@ class TaskTile extends StatelessWidget {
           child: LayoutBuilder(
             builder: (context, constraints) {
               const double iconSlot = 36;
-              const double badgeSlot = 76;
+              const double badgeSlot = 92;
               return Row(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
@@ -37,54 +37,78 @@ class TaskTile extends StatelessWidget {
                     width: iconSlot,
                     child: Center(
                       child: showCheckbox
-                          ? Checkbox(
-                              value: task.completed,
-                              onChanged: (_) => cubit.toggleComplete(task.id),
+                          ? _AnimatedTap(
+                              child: AnimatedScale(
+                                scale: task.completed ? 0.96 : 1.0,
+                                duration: const Duration(milliseconds: 150),
+                                curve: Curves.easeOut,
+                                child: Checkbox(
+                                  value: task.completed,
+                                  onChanged: (_) => cubit.toggleComplete(task.id),
+                                ),
+                              ),
                             )
                           : const Icon(Icons.radio_button_unchecked),
                     ),
                   ),
                   const SizedBox(width: 6),
                   Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          task.title,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            fontWeight: FontWeight.w600,
-                            decoration:
-                                task.completed ? TextDecoration.lineThrough : null,
+                    child: AnimatedDefaultTextStyle(
+                      duration: const Duration(milliseconds: 180),
+                      curve: Curves.easeOut,
+                      style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        decoration: task.completed ? TextDecoration.lineThrough : null,
+                        color: Theme.of(context).colorScheme.onSurface,
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            task.title,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
-                        ),
-                        const SizedBox(height: 4),
-                        _buildSubtitle(context),
-                      ],
+                          const SizedBox(height: 4),
+                          AnimatedOpacity(
+                            duration: const Duration(milliseconds: 160),
+                            opacity: task.completed ? 0.6 : 1.0,
+                            child: _buildSubtitle(context),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                   const SizedBox(width: 8),
                   SizedBox(
                     width: iconSlot,
-                    child: IconButton(
-                      tooltip: task.myDay ? 'Remove from My Day' : 'Add to My Day',
-                      icon: Icon(task.myDay ? Icons.wb_sunny : Icons.wb_sunny_outlined),
-                      onPressed: () => cubit.toggleMyDay(task.id),
-                      constraints:
-                          const BoxConstraints.tightFor(width: iconSlot, height: iconSlot),
-                      padding: EdgeInsets.zero,
+                    child: _AnimatedTap(
+                      child: IconButton(
+                        tooltip: task.myDay ? 'Remove from My Day' : 'Add to My Day',
+                        icon: Icon(task.myDay ? Icons.wb_sunny : Icons.wb_sunny_outlined),
+                        onPressed: () => cubit.toggleMyDay(task.id),
+                        constraints:
+                            const BoxConstraints.tightFor(width: iconSlot, height: iconSlot),
+                        padding: EdgeInsets.zero,
+                      ),
                     ),
                   ),
                   SizedBox(
                     width: iconSlot,
-                    child: IconButton(
-                      icon: Icon(task.important ? Icons.star : Icons.star_border),
-                      onPressed: () => cubit.toggleImportant(task.id),
-                      constraints:
-                          const BoxConstraints.tightFor(width: iconSlot, height: iconSlot),
-                      padding: EdgeInsets.zero,
+                    child: _AnimatedTap(
+                      child: AnimatedScale(
+                        scale: task.important ? 1.05 : 1.0,
+                        duration: const Duration(milliseconds: 160),
+                        curve: Curves.easeOut,
+                        child: IconButton(
+                          icon: Icon(task.important ? Icons.star : Icons.star_border),
+                          onPressed: () => cubit.toggleImportant(task.id),
+                          constraints:
+                              const BoxConstraints.tightFor(width: iconSlot, height: iconSlot),
+                          padding: EdgeInsets.zero,
+                        ),
+                      ),
                     ),
                   ),
                   SizedBox(
@@ -183,27 +207,32 @@ class _PriorityBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     final color = _resolveColor();
     const textColor = Color(0xFF111827);
-    return Container(
-      margin: const EdgeInsets.only(left: 8),
+    return ConstrainedBox(
       constraints: const BoxConstraints(
-        minWidth: 80,
-        minHeight: 28,
-        maxHeight: 28,
+        minWidth: 92,
+        minHeight: 32,
       ),
-      padding: const EdgeInsets.symmetric(horizontal: 10),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        border: Border.all(color: color.withOpacity(0.6)),
-        borderRadius: BorderRadius.circular(14),
-      ),
-      alignment: Alignment.center,
-      child: Text(
-        priority.label,
-        textAlign: TextAlign.center,
-        style: Theme.of(context).textTheme.labelSmall?.copyWith(
-              color: textColor,
-              fontWeight: FontWeight.w600,
-            ),
+      child: Container(
+        margin: const EdgeInsets.only(left: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.08),
+          border: Border.all(color: color.withOpacity(0.5), width: 1),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        alignment: Alignment.center,
+        child: Text(
+          priority.label,
+          maxLines: 1,
+          softWrap: false,
+          overflow: TextOverflow.visible,
+          textAlign: TextAlign.center,
+          style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                color: textColor,
+                fontWeight: FontWeight.w600,
+                height: 1.25,
+              ),
+        ),
       ),
     );
   }
@@ -225,8 +254,7 @@ class _AlignedActions extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        SizedBox(
-          width: 32,
+        _AnimatedTap(
           child: IconButton(
             tooltip: task.myDay ? 'Remove from My Day' : 'Add to My Day',
             icon: Icon(task.myDay ? Icons.wb_sunny : Icons.wb_sunny_outlined),
@@ -235,8 +263,7 @@ class _AlignedActions extends StatelessWidget {
             padding: EdgeInsets.zero,
           ),
         ),
-        SizedBox(
-          width: 32,
+        _AnimatedTap(
           child: IconButton(
             icon: Icon(task.important ? Icons.star : Icons.star_border),
             onPressed: onToggleImportant,
@@ -246,6 +273,34 @@ class _AlignedActions extends StatelessWidget {
         ),
         _PriorityBadge(priority: task.priority),
       ],
+    );
+  }
+}
+
+class _AnimatedTap extends StatefulWidget {
+  const _AnimatedTap({required this.child});
+  final Widget child;
+
+  @override
+  State<_AnimatedTap> createState() => _AnimatedTapState();
+}
+
+class _AnimatedTapState extends State<_AnimatedTap> with SingleTickerProviderStateMixin {
+  bool _pressed = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTapDown: (_) => setState(() => _pressed = true),
+      onTapUp: (_) => setState(() => _pressed = false),
+      onTapCancel: () => setState(() => _pressed = false),
+      child: AnimatedScale(
+        scale: _pressed ? 0.94 : 1.0,
+        duration: const Duration(milliseconds: 120),
+        curve: Curves.easeOut,
+        child: widget.child,
+      ),
     );
   }
 }

@@ -77,8 +77,16 @@ class _OrgAppState extends State<OrgApp> {
     const tertiaryOrange = Color(0xFFF5A623);
     const lightBackground = Color(0xFFF5F7FA);
 
+    final textTheme = Typography.englishLike2021.apply(
+      fontFamily: 'Inter',
+      displayColor: const Color(0xFF111827),
+      bodyColor: const Color(0xFF111827),
+    );
+
     final baseTheme = ThemeData(
       useMaterial3: true,
+      fontFamily: 'Inter',
+      fontFamilyFallback: const ['Roboto', 'Noto Sans SC'],
       colorScheme: ColorScheme.fromSeed(
         seedColor: primaryBlue,
         primary: primaryBlue,
@@ -88,16 +96,51 @@ class _OrgAppState extends State<OrgApp> {
         background: lightBackground,
       ),
       scaffoldBackgroundColor: lightBackground,
+      textTheme: textTheme.copyWith(
+        headlineMedium: const TextStyle(fontSize: 28, fontWeight: FontWeight.w700),
+        titleLarge: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
+        titleMedium: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+        bodyLarge: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+        bodyMedium: const TextStyle(fontSize: 14, color: Color(0xFF4B5563)),
+        bodySmall: const TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
+        labelSmall: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+      ),
       cardTheme: CardThemeData(
         color: Colors.white,
-        elevation: 4,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        elevation: 3,
+        shadowColor: Colors.black.withOpacity(0.06),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        margin: EdgeInsets.zero,
       ),
       appBarTheme: const AppBarTheme(
         backgroundColor: Colors.white,
-        foregroundColor: Colors.black87,
+        foregroundColor: Color(0xFF111827),
         elevation: 0.5,
         surfaceTintColor: Colors.white,
+        centerTitle: false,
+      ),
+      navigationBarTheme: NavigationBarThemeData(
+        backgroundColor: Colors.white,
+        indicatorColor: primaryBlue.withOpacity(0.15),
+        elevation: 8,
+        labelTextStyle: MaterialStateProperty.resolveWith((states) {
+          final active = states.contains(MaterialState.selected);
+          return TextStyle(
+            fontSize: 12,
+            fontWeight: active ? FontWeight.w700 : FontWeight.w500,
+            color: active ? primaryBlue : const Color(0xFF6B7280),
+          );
+        }),
+        iconTheme: MaterialStateProperty.resolveWith((states) {
+          final active = states.contains(MaterialState.selected);
+          return IconThemeData(
+            color: active ? primaryBlue : const Color(0xFF6B7280),
+            size: active ? 24 : 22,
+          );
+        }),
+      ),
+      navigationRailTheme: const NavigationRailThemeData(
+        backgroundColor: lightBackground,
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
@@ -115,7 +158,8 @@ class _OrgAppState extends State<OrgApp> {
           borderSide: const BorderSide(color: primaryBlue, width: 1.4),
         ),
         contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-        labelStyle: const TextStyle(color: Colors.black87),
+        labelStyle: const TextStyle(color: Color(0xFF111827)),
+        hintStyle: const TextStyle(color: Color(0xFF9CA3AF)),
       ),
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
@@ -123,7 +167,7 @@ class _OrgAppState extends State<OrgApp> {
           foregroundColor: Colors.white,
           padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          textStyle: const TextStyle(fontWeight: FontWeight.w600),
+          textStyle: const TextStyle(fontWeight: FontWeight.w700),
         ),
       ),
       textButtonTheme: TextButtonThemeData(
@@ -134,6 +178,102 @@ class _OrgAppState extends State<OrgApp> {
       ),
       checkboxTheme: CheckboxThemeData(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+        visualDensity: VisualDensity.compact,
+      ),
+    );
+    final darkColorScheme = ColorScheme.fromSeed(
+      seedColor: primaryBlue,
+      brightness: Brightness.dark,
+      primary: primaryBlue,
+      secondary: secondaryMint,
+      tertiary: tertiaryOrange,
+    );
+    final darkTheme = ThemeData(
+      useMaterial3: true,
+      fontFamily: 'Inter',
+      fontFamilyFallback: const ['Roboto', 'Noto Sans SC'],
+      colorScheme: darkColorScheme,
+      scaffoldBackgroundColor: const Color(0xFF111318),
+      textTheme: textTheme.copyWith(
+        headlineMedium: const TextStyle(fontSize: 28, fontWeight: FontWeight.w700),
+        titleLarge: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
+        titleMedium: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+        bodyLarge: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+        bodyMedium: const TextStyle(fontSize: 14, color: Color(0xFFCBD5E1)),
+        bodySmall: const TextStyle(fontSize: 12, color: Color(0xFF94A3B8)),
+        labelSmall: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+      ),
+      cardTheme: CardThemeData(
+        color: const Color(0xFF1C1F26),
+        elevation: 2,
+        shadowColor: Colors.black.withOpacity(0.4),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        margin: EdgeInsets.zero,
+      ),
+      appBarTheme: const AppBarTheme(
+        backgroundColor: Color(0xFF1C1F26),
+        foregroundColor: Colors.white,
+        elevation: 0.5,
+        surfaceTintColor: Color(0xFF1C1F26),
+        centerTitle: false,
+      ),
+      navigationBarTheme: NavigationBarThemeData(
+        backgroundColor: const Color(0xFF1C1F26),
+        indicatorColor: primaryBlue.withOpacity(0.2),
+        elevation: 8,
+        labelTextStyle: MaterialStateProperty.resolveWith((states) {
+          final active = states.contains(MaterialState.selected);
+          return TextStyle(
+            fontSize: 12,
+            fontWeight: active ? FontWeight.w700 : FontWeight.w500,
+            color: active ? Colors.white : const Color(0xFF94A3B8),
+          );
+        }),
+        iconTheme: MaterialStateProperty.resolveWith((states) {
+          final active = states.contains(MaterialState.selected);
+          return IconThemeData(
+            color: active ? Colors.white : const Color(0xFF94A3B8),
+            size: active ? 24 : 22,
+          );
+        }),
+      ),
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: const Color(0xFF1C1F26),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: const BorderSide(color: Color(0xFF2E323D)),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: const BorderSide(color: Color(0xFF2E323D)),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: const BorderSide(color: primaryBlue, width: 1.4),
+        ),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        labelStyle: const TextStyle(color: Colors.white),
+        hintStyle: const TextStyle(color: Color(0xFF94A3B8)),
+      ),
+      filledButtonTheme: FilledButtonThemeData(
+        style: FilledButton.styleFrom(
+          backgroundColor: primaryBlue,
+          foregroundColor: Colors.white,
+          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          textStyle: const TextStyle(fontWeight: FontWeight.w700),
+        ),
+      ),
+      textButtonTheme: TextButtonThemeData(
+        style: TextButton.styleFrom(
+          foregroundColor: primaryBlue,
+          textStyle: const TextStyle(fontWeight: FontWeight.w600),
+        ),
+      ),
+      checkboxTheme: CheckboxThemeData(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+        visualDensity: VisualDensity.compact,
       ),
     );
 
@@ -185,7 +325,7 @@ class _OrgAppState extends State<OrgApp> {
                   title: 'Organizational App (UI)',
                   themeMode: mode,
                   theme: baseTheme,
-                  darkTheme: ThemeData.dark(),
+                  darkTheme: darkTheme,
                   routerConfig: _router!,
                 );
               },

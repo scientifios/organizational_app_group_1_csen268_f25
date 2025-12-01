@@ -41,7 +41,22 @@ class AppRouter {
         GoRoute(
           path: '/settings',
           name: 'settings',
-          builder: (c, s) => const SettingsPage(),
+          pageBuilder: (context, state) => CustomTransitionPage(
+            transitionDuration: const Duration(milliseconds: 220),
+            reverseTransitionDuration: const Duration(milliseconds: 220),
+            child: const SettingsPage(),
+            transitionsBuilder: (context, animation, secondary, child) {
+              final curved = CurvedAnimation(parent: animation, curve: Curves.easeInOut);
+              final offsetTween = Tween(begin: const Offset(0.08, 0), end: Offset.zero);
+              return FadeTransition(
+                opacity: curved,
+                child: SlideTransition(
+                  position: offsetTween.animate(curved),
+                  child: child,
+                ),
+              );
+            },
+          ),
         ),
         GoRoute(
           path: '/create_group',
