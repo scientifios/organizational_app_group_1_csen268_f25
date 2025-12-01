@@ -1,4 +1,4 @@
-// lib/ui/pages/tasks_page.dart
+﻿// lib/ui/pages/tasks_page.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -21,6 +21,7 @@ class _TasksPageState extends State<TasksPage> {
   final _searchController = TextEditingController();
   TaskFilter _filter = TaskFilter.all;
   TaskSort _sort = TaskSort.smart;
+  final double _cardRadius = 18;
 
   @override
   void initState() {
@@ -49,60 +50,93 @@ class _TasksPageState extends State<TasksPage> {
           }
         }),
         title: const Text('Tasks'),
+        centerTitle: false,
+        actions: const [],
       ),
       floatingActionButton: Padding(
         padding: const EdgeInsets.only(right: 16, bottom: 16),
-        child: FloatingActionButton(
-          heroTag: 'add_task',
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(18),
+        child: FilledButton.icon(
+          style: FilledButton.styleFrom(
+            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
           ),
-          backgroundColor: Theme.of(context).colorScheme.secondaryContainer,
-          elevation: 6,
+          icon: const Icon(Icons.add),
+          label: const Text('New task'),
           onPressed: () => _showCreateDialog(cubit),
-          child: Icon(
-            Icons.add,
-            color: Theme.of(context).colorScheme.onSecondaryContainer,
+        ),
+      ),
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+          child: Column(
+            children: [
+              _header(context, tasks.length),
+              const SizedBox(height: 12),
+              Card(
+                elevation: 3,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(_cardRadius),
+                ),
+                child: Column(
+                  children: [
+                    _buildSearchRow(),
+                    const Divider(height: 1),
+                    _buildFilterRow(),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+              Expanded(
+                child: tasks.isEmpty
+                    ? _emptyState()
+                    : ListView.separated(
+                        padding: const EdgeInsets.only(bottom: 90, top: 8),
+                        itemCount: tasks.length,
+                        separatorBuilder: (_, __) => const SizedBox(height: 8),
+                        itemBuilder: (context, i) => _taskCard(tasks[i]),
+                      ),
+              )
+            ],
           ),
         ),
       ),
-      body: Column(
-        children: [
-          _buildSearchRow(),
-          _buildFilterRow(),
-          Expanded(
-            child: tasks.isEmpty
-                ? const Center(child: Text('No tasks match your filters.'))
-                : ListView.separated(
-                    itemCount: tasks.length,
-                    separatorBuilder: (_, __) => const Divider(height: 1),
-                    itemBuilder: (context, i) => TaskTile(task: tasks[i]),
-                  ),
-          )
-        ],
-      ),
+    );
+  }
+
+  Widget _header(BuildContext context, int count) {
+    final active = _applyQuery(
+      context.read<TasksCubit>().state.tasks.where((t) => !t.completed).toList(),
+      context.read<TasksCubit>().state.lists,
+    );
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Today', style: Theme.of(context).textTheme.headlineMedium),
+        const SizedBox(height: 4),
+        Text('$count tasks · ${active.length} active',
+            style: Theme.of(context)
+                .textTheme
+                .bodyMedium
+                ?.copyWith(color: Colors.grey[600])),
+      ],
     );
   }
 
   Widget _buildSearchRow() {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: Column(
-        children: [
-          TextField(
-            controller: _searchController,
-            decoration: InputDecoration(
-              hintText: 'Search tasks, notes or lists',
-              prefixIcon: const Icon(Icons.search),
-              suffixIcon: _searchController.text.isEmpty
-                  ? null
-                  : IconButton(
-                      icon: const Icon(Icons.close),
-                      onPressed: () => _searchController.clear(),
-                    ),
-            ),
-          ),
-        ],
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      child: TextField(
+        controller: _searchController,
+        decoration: InputDecoration(
+          labelText: 'Search',
+          prefixIcon: const Icon(Icons.search),
+          suffixIcon: _searchController.text.isEmpty
+              ? null
+              : IconButton(
+                  icon: const Icon(Icons.close),
+                  onPressed: () => _searchController.clear(),
+                ),
+        ),
       ),
     );
   }
@@ -113,11 +147,13 @@ class _TasksPageState extends State<TasksPage> {
       context: context,
       builder: (context) {
         return AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           title: const Text('New task'),
           content: TextField(
             controller: _controller,
             autofocus: true,
             decoration: const InputDecoration(
+              labelText: 'Title',
               hintText: 'What needs to get done?',
             ),
             onSubmitted: (_) => Navigator.pop(context, _controller.text.trim()),
@@ -144,7 +180,7 @@ class _TasksPageState extends State<TasksPage> {
 
   Widget _buildFilterRow() {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: Wrap(
         spacing: 8,
         runSpacing: 8,
@@ -161,31 +197,66 @@ class _TasksPageState extends State<TasksPage> {
               onSelected: (_) => setState(() => _filter = filter),
             ),
           const SizedBox(width: 12),
-          DropdownButton<TaskSort>(
-            value: _sort,
-            underline: const SizedBox.shrink(),
-            onChanged: (value) {
-              if (value != null) {
-                setState(() => _sort = value);
-              }
-            },
-            items: TaskSort.values
-                .map(
-                  (sort) => DropdownMenuItem(
-                    value: sort,
-                    child: Text(
-                      switch (sort) {
-                        TaskSort.smart => 'Smart sort',
-                        TaskSort.dueDate => 'Due date',
-                        TaskSort.priority => 'Priority',
-                        TaskSort.created => 'Created',
-                      },
+          InputDecorator(
+            decoration: const InputDecoration(
+              labelText: 'Sort by',
+              contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+            ),
+            child: DropdownButton<TaskSort>(
+              value: _sort,
+              isDense: true,
+              underline: const SizedBox.shrink(),
+              onChanged: (value) {
+                if (value != null) {
+                  setState(() => _sort = value);
+                }
+              },
+              items: TaskSort.values
+                  .map(
+                    (sort) => DropdownMenuItem(
+                      value: sort,
+                      child: Text(
+                        switch (sort) {
+                          TaskSort.smart => 'Smart sort',
+                          TaskSort.dueDate => 'Due date',
+                          TaskSort.priority => 'Priority',
+                          TaskSort.created => 'Created',
+                        },
+                      ),
                     ),
-                  ),
-                )
-                .toList(),
+                  )
+                  .toList(),
+            ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _taskCard(Task task) {
+    return Card(
+      elevation: 3,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: TaskTile(task: task),
+    );
+  }
+
+  Widget _emptyState() {
+    return Card(
+      elevation: 3,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+      child: const SizedBox(
+        height: 220,
+        child: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.inbox_outlined, size: 48, color: Colors.grey),
+              SizedBox(height: 12),
+              Text('No tasks match your filters.')
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -207,52 +278,36 @@ class _TasksPageState extends State<TasksPage> {
 
     if (query.isNotEmpty) {
       filtered = filtered.where((t) {
-        final listName = t.listId != null ? lists[t.listId] ?? '' : '';
-        return t.title.toLowerCase().contains(query) ||
-            (t.note?.toLowerCase().contains(query) ?? false) ||
-            listName.toLowerCase().contains(query);
+        final title = t.title.toLowerCase();
+        final note = (t.note ?? '').toLowerCase();
+        final listName = t.listId != null ? (lists[t.listId]?.toLowerCase() ?? '') : '';
+        return title.contains(query) || note.contains(query) || listName.contains(query);
       });
     }
 
-    final results = filtered.toList();
-    results.sort((a, b) => _compareTasks(a, b));
-    return results;
-  }
-
-  int _compareTasks(Task a, Task b) {
+    final list = filtered.toList();
     switch (_sort) {
       case TaskSort.smart:
-        return _smartScore(a).compareTo(_smartScore(b));
+        list.sort((a, b) => a.priority.weight.compareTo(b.priority.weight));
+        break;
       case TaskSort.dueDate:
-        return _compareNullableDate(a.dueDate, b.dueDate);
+        list.sort((a, b) {
+          final aDue = a.dueDate ?? DateTime(9999);
+          final bDue = b.dueDate ?? DateTime(9999);
+          return aDue.compareTo(bDue);
+        });
+        break;
       case TaskSort.priority:
-        return a.priority.weight.compareTo(b.priority.weight);
+        list.sort((a, b) => a.priority.weight.compareTo(b.priority.weight));
+        break;
       case TaskSort.created:
-        return _compareNullableDate(a.createdAt, b.createdAt);
+        list.sort((a, b) {
+          final aCreated = a.createdAt ?? DateTime(1970);
+          final bCreated = b.createdAt ?? DateTime(1970);
+          return aCreated.compareTo(bCreated);
+        });
+        break;
     }
-  }
-
-  int _smartScore(Task task) {
-    final today = DateTime.now();
-    final due = task.dueDate;
-    final urgent = due != null &&
-        DateTime(due.year, due.month, due.day)
-                .difference(DateTime(today.year, today.month, today.day))
-                .inDays <=
-            0;
-    final estimate = task.estimateMinutes ?? 120;
-    final important = task.important || task.priority == TaskPriority.high;
-
-    return (urgent ? 0 : 2) +
-        (important ? 0 : 2) +
-        (estimate ~/ 30) +
-        (task.completed ? 10 : 0);
-  }
-
-  int _compareNullableDate(DateTime? a, DateTime? b) {
-    if (a == null && b == null) return 0;
-    if (a == null) return 1;
-    if (b == null) return -1;
-    return a.compareTo(b);
+    return list;
   }
 }

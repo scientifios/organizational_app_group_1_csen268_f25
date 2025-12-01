@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
@@ -15,31 +15,79 @@ class MyDayPage extends StatelessWidget {
     final tasks = context.select((TasksCubit c) => _smartMyDay(c.state.tasks));
     return Scaffold(
       appBar: AppBar(
-        leading: BackButton(onPressed: () => context.pop()),
+        leading: BackButton(
+          onPressed: () {
+            // Always return to home shell to avoid landing on /tasks root unintentionally.
+            context.go('/home');
+          },
+        ),
         title: const Text('My Day'),
+        actions: const [],
       ),
-      body: ListView.separated(
-        padding: const EdgeInsets.only(bottom: 96),
-        itemCount: tasks.length + 1,
-        separatorBuilder: (_, __) => const Divider(height: 1),
-        itemBuilder: (context, index) {
-          if (index == 0) {
-            return const ListTile(
-              title: Text('Today\'s focus'),
-              subtitle: Text('Sorted by urgency -> importance -> duration'),
-            );
-          }
-          return TaskTile(task: tasks[index - 1]);
-        },
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Today', style: Theme.of(context).textTheme.headlineMedium),
+              const SizedBox(height: 4),
+              Text('${tasks.length} tasks',
+                  style: Theme.of(context)
+                      .textTheme
+                      .bodyMedium
+                      ?.copyWith(color: Colors.grey[600])),
+              const SizedBox(height: 12),
+              Expanded(
+                child: Card(
+                  elevation: 3,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(18),
+                  ),
+                  child: tasks.isEmpty
+                      ? const Center(
+                          child: Padding(
+                            padding: EdgeInsets.all(24),
+                            child: Text('No tasks in My Day yet'),
+                          ),
+                        )
+                      : ListView.separated(
+                          padding: const EdgeInsets.only(bottom: 96, top: 8),
+                          itemCount: tasks.length + 1,
+                          separatorBuilder: (_, __) => const SizedBox(height: 8),
+                          itemBuilder: (context, index) {
+                            if (index == 0) {
+                              return const ListTile(
+                                title: Text("Today's focus"),
+                                subtitle:
+                                    Text('Sorted by urgency → importance → duration'),
+                              );
+                            }
+                            return Card(
+                              elevation: 0,
+                              margin:
+                                  const EdgeInsets.symmetric(horizontal: 12),
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(14)),
+                              child: TaskTile(task: tasks[index - 1]),
+                            );
+                          },
+                        ),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
-      floatingActionButton: FloatingActionButton(
+      floatingActionButton: FilledButton.icon(
         onPressed: () async {
           final name = await promptDialog(context, 'Add task to My Day');
           if (name != null && context.mounted) {
             await context.read<TasksCubit>().addTask(name, myDay: true);
           }
         },
-        child: const Icon(Icons.add),
+        icon: const Icon(Icons.add),
+        label: const Text('New task'),
       ),
     );
   }

@@ -12,7 +12,6 @@ import 'repository/push_token_repository.dart';
 import 'repository/reminders_repository.dart';
 import 'repository/tasks_repository.dart';
 import 'router/app_router.dart';
-import 'services/profile_repository.dart';
 import 'services/push_notification_service.dart';
 import 'state/auth_cubit.dart';
 import 'state/messages_cubit.dart';
@@ -73,6 +72,71 @@ class _OrgAppState extends State<OrgApp> {
 
   @override
   Widget build(BuildContext context) {
+    const primaryBlue = Color(0xFF4A90E2);
+    const secondaryMint = Color(0xFF45C4B0);
+    const tertiaryOrange = Color(0xFFF5A623);
+    const lightBackground = Color(0xFFF5F7FA);
+
+    final baseTheme = ThemeData(
+      useMaterial3: true,
+      colorScheme: ColorScheme.fromSeed(
+        seedColor: primaryBlue,
+        primary: primaryBlue,
+        secondary: secondaryMint,
+        tertiary: tertiaryOrange,
+        surface: Colors.white,
+        background: lightBackground,
+      ),
+      scaffoldBackgroundColor: lightBackground,
+      cardTheme: CardThemeData(
+        color: Colors.white,
+        elevation: 4,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      ),
+      appBarTheme: const AppBarTheme(
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.black87,
+        elevation: 0.5,
+        surfaceTintColor: Colors.white,
+      ),
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: Colors.white,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: const BorderSide(color: Color(0xFFE0E6EE)),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: const BorderSide(color: Color(0xFFE0E6EE)),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: const BorderSide(color: primaryBlue, width: 1.4),
+        ),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        labelStyle: const TextStyle(color: Colors.black87),
+      ),
+      filledButtonTheme: FilledButtonThemeData(
+        style: FilledButton.styleFrom(
+          backgroundColor: primaryBlue,
+          foregroundColor: Colors.white,
+          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          textStyle: const TextStyle(fontWeight: FontWeight.w600),
+        ),
+      ),
+      textButtonTheme: TextButtonThemeData(
+        style: TextButton.styleFrom(
+          foregroundColor: primaryBlue,
+          textStyle: const TextStyle(fontWeight: FontWeight.w600),
+        ),
+      ),
+      checkboxTheme: CheckboxThemeData(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+      ),
+    );
+
     return MultiRepositoryProvider(
       providers: [
         RepositoryProvider(create: (_) => MessagesRepository()),
@@ -80,7 +144,6 @@ class _OrgAppState extends State<OrgApp> {
         RepositoryProvider(create: (_) => PushTokenRepository()),
         RepositoryProvider(create: (_) => RemindersRepository()),
         RepositoryProvider(create: (_) => TasksRepository()),
-        RepositoryProvider(create: (_) => ProfileRepository()),
         RepositoryProvider(
           create: (context) => PushNotificationService(
             tokenRepository: context.read<PushTokenRepository>(),
@@ -91,10 +154,7 @@ class _OrgAppState extends State<OrgApp> {
         providers: [
           BlocProvider(create: (_) => ThemeCubit()),
           BlocProvider(
-            create: (context) => AuthCubit(
-              firebaseAuth: FirebaseAuth.instance,
-              profileRepository: context.read<ProfileRepository>(),
-            ),
+            create: (_) => AuthCubit(firebaseAuth: FirebaseAuth.instance),
           ),
           BlocProvider(
             create: (context) => TasksCubit(
@@ -111,7 +171,6 @@ class _OrgAppState extends State<OrgApp> {
             ),
           ),
         ],
-        // Use a Builder to access the context where providers above are available
         child: Builder(
           builder: (innerContext) {
             innerContext.read<PushNotificationService>().ensureInitialized(
@@ -125,16 +184,8 @@ class _OrgAppState extends State<OrgApp> {
                   debugShowCheckedModeBanner: false,
                   title: 'Organizational App (UI)',
                   themeMode: mode,
-                  theme: ThemeData(
-                    useMaterial3: true,
-                    colorSchemeSeed: Colors.indigo,
-                    brightness: Brightness.light,
-                  ),
-                  darkTheme: ThemeData(
-                    useMaterial3: true,
-                    colorSchemeSeed: Colors.indigo,
-                    brightness: Brightness.dark,
-                  ),
+                  theme: baseTheme,
+                  darkTheme: ThemeData.dark(),
                   routerConfig: _router!,
                 );
               },
@@ -145,4 +196,3 @@ class _OrgAppState extends State<OrgApp> {
     );
   }
 }
-

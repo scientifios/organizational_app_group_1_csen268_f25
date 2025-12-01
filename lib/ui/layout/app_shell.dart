@@ -1,110 +1,101 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import '../../state/tasks_cubit.dart';
 
+/// Adaptive shell: NavigationRail on wide screens, BottomNavigationBar on phones.
 class AppShell extends StatelessWidget {
-  final Widget child;
   const AppShell({super.key, required this.child});
+  final Widget child;
+
+  static const _navItems = [
+    _NavItem('Home', Icons.home_outlined, '/home'),
+    _NavItem('My Day', Icons.wb_sunny_outlined, '/tasks/myday'),
+    _NavItem('Tasks', Icons.checklist_outlined, '/tasks'),
+    _NavItem('Messages', Icons.notifications_outlined, '/notifications'),
+  ];
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Organizational App'),
-        leading: IconButton(
-          icon: const CircleAvatar(child: Icon(Icons.person, size: 18)),
-          onPressed: () => context.push('/settings'),
-        ),
-        actions: [
-          IconButton(
-              icon: const Icon(Icons.search),
-              onPressed: () => context.push('/search')),
-          IconButton(
-              icon: const Icon(Icons.notifications_outlined),
-              onPressed: () => context.push('/notifications')),
-        ],
-      ),
-      body: AnimatedSwitcher(
-          duration: const Duration(milliseconds: 250), child: child),
-      floatingActionButtonLocation: FloatingActionButtonLocation.endDocked,
-      floatingActionButton: Padding(
-        padding: const EdgeInsets.only(bottom: 24),
-        child: FloatingActionButton.small(
-          heroTag: 'copilot',
-          onPressed: () => showDialog(
-            context: context,
-            builder: (_) => const Dialog(
-              insetPadding: EdgeInsets.symmetric(horizontal: 32, vertical: 120),
-              child: _CopilotSheet(),
-            ),
+    final isWide = MediaQuery.of(context).size.width >= 700;
+    return BlocBuilder<TasksCubit, TasksState>(
+      builder: (context, state) {
+        if (isWide) {
+        return Scaffold(
+          body: Row(
+            children: [
+              NavigationRail(
+                selectedIndex: _selectedIndex(context),
+                onDestinationSelected: (index) =>
+                    _onDestinationSelected(context, index),
+                labelType: NavigationRailLabelType.all,
+                destinations: _navItems
+                    .map(
+                      (item) => NavigationRailDestination(
+                        icon: Icon(item.icon),
+                        selectedIcon: Icon(
+                          item.icon,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                        label: Text(item.label),
+                      ),
+                    )
+                    .toList()
+                  ..add(
+                    const NavigationRailDestination(
+                      icon: Icon(Icons.settings_outlined),
+                      selectedIcon: Icon(Icons.settings),
+                      label: Text('Settings'),
+                    ),
+                  ),
+              ),
+              const VerticalDivider(width: 1),
+              Expanded(child: child),
+            ],
           ),
-          child: const Icon(Icons.smart_toy_outlined),
-        ),
-      ),
-      // bottomNavigationBar: NavigationBar(
-      //   selectedIndex: 0, // Only visible on /home now
-      //   destinations: const [
-      //     NavigationDestination(icon: Icon(Icons.home), label: 'Home'),
-      //     NavigationDestination(icon: Icon(Icons.check_circle_outline), label: 'Tasks'),
-      //   ],
-      //   onDestinationSelected: (i) {
-      //     switch (i) {
-      //       case 0: context.go('/home'); break;
-      //       case 1: context.go('/tasks'); break;
-      //     }
-      //   },
-      // ),
+          );
+        }
+        // Mobile bottom navigation
+        final selected = _selectedIndex(context);
+        return Scaffold(
+          body: child,
+          bottomNavigationBar: NavigationBar(
+            selectedIndex: selected,
+            onDestinationSelected: (index) =>
+                _onDestinationSelected(context, index),
+            destinations: _navItems
+                .map(
+                  (item) => NavigationDestination(
+                    icon: Icon(item.icon),
+                    label: item.label,
+                  ),
+                )
+                .toList(),
+          ),
+        );
+      },
     );
+  }
+
+  int _selectedIndex(BuildContext context) {
+    final loc = GoRouterState.of(context).uri.toString();
+    if (loc.startsWith('/home')) return 0;
+    if (loc.startsWith('/tasks/myday')) return 1;
+    if (loc.startsWith('/tasks')) return 2;
+    if (loc.startsWith('/notifications')) return 3;
+    return 0;
+  }
+
+  void _onDestinationSelected(BuildContext context, int index) {
+    if (index < _navItems.length) {
+      context.go(_navItems[index].path);
+    }
   }
 }
 
-class _CopilotSheet extends StatelessWidget {
-  const _CopilotSheet();
-
-  @override
-  Widget build(BuildContext context) {
-    return DraggableScrollableSheet(
-      initialChildSize: .6,
-      maxChildSize: .95,
-      minChildSize: .4,
-      expand: false,
-      builder: (_, controller) => Material(
-        child: ListView(
-          controller: controller,
-          padding: const EdgeInsets.all(16),
-          children: const [
-            // 1) 头行
-            ListTile(
-              contentPadding: EdgeInsets.zero,
-              leading: Icon(Icons.smart_toy),
-              title: Text('Copilot'),
-              subtitle: Text('How can I help you today?'),
-            ),
-
-            // 2) 输入行（也用 ListTile）
-            ListTile(
-              contentPadding: EdgeInsets.zero,
-              leading: Icon(Icons.message_outlined),
-              title: TextField(
-                decoration: InputDecoration(
-                  hintText: 'Ask anything...',
-                  border: InputBorder.none,         // 去掉下划线
-                  isDense: true,
-                  contentPadding: EdgeInsets.zero,  // 去掉 TextField 自身内边距
-                ),
-              ),
-            ),
-
-            Divider(height: 16),
-
-            // 3) Tip 行
-            ListTile(
-              contentPadding: EdgeInsets.zero,
-              leading: Icon(Icons.lightbulb_outline),
-              title: Text('Tip: Try "Plan my day"'),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+class _NavItem {
+  final String label;
+  final IconData icon;
+  final String path;
+  const _NavItem(this.label, this.icon, this.path);
 }
