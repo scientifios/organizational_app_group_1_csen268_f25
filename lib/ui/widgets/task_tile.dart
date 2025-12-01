@@ -23,7 +23,7 @@ class TaskTile extends StatelessWidget {
       onDismissed: (_) => cubit.removeTask(task.id),
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
-        onTap: () => context.push('/tasks/detail/${task.id}'),
+        onTap: () => context.push('/task_detail/${task.id}'),
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
           child: LayoutBuilder(

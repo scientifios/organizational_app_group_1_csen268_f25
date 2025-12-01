@@ -15,12 +15,7 @@ class MyDayPage extends StatelessWidget {
     final tasks = context.select((TasksCubit c) => _smartMyDay(c.state.tasks));
     return Scaffold(
       appBar: AppBar(
-        leading: BackButton(
-          onPressed: () {
-            // Always return to home shell to avoid landing on /tasks root unintentionally.
-            context.go('/home');
-          },
-        ),
+        automaticallyImplyLeading: false,
         title: const Text('My Day'),
         actions: const [],
       ),

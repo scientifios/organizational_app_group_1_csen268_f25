@@ -42,13 +42,7 @@ class _TasksPageState extends State<TasksPage> {
     final tasks = _applyQuery(cubit.state.tasks, cubit.state.lists);
     return Scaffold(
       appBar: AppBar(
-        leading: BackButton(onPressed: () {
-          if (Navigator.of(context).canPop()) {
-            Navigator.of(context).pop();
-          } else {
-            context.go('/home');
-          }
-        }),
+        automaticallyImplyLeading: false,
         title: const Text('Tasks'),
         centerTitle: false,
         actions: const [],

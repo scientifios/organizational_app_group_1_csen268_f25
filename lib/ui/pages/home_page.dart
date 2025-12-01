@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../state/tasks_cubit.dart';
 import '../widgets/prompt_dialog.dart';
 import '../../state/auth_cubit.dart';
+import '../layout/app_shell.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
@@ -79,25 +80,19 @@ class HomePage extends StatelessWidget {
                         _QuickFullRow(
                           icon: Icons.wb_sunny_outlined,
                           label: 'My Day',
-                          onTap: () => context.push('/tasks/myday'),
-                        ),
-                        const SizedBox(height: 12),
-                        _QuickFullRow(
-                          icon: Icons.star_border,
-                          label: 'Important',
-                          onTap: () => context.push('/tasks/important'),
+                          onTap: () => switchToTab(context, 1),
                         ),
                         const SizedBox(height: 12),
                         _QuickFullRow(
                           icon: Icons.task_alt,
                           label: 'Tasks',
-                          onTap: () => context.push('/tasks'),
+                          onTap: () => switchToTab(context, 2),
                         ),
                         const SizedBox(height: 12),
                         _QuickFullRow(
                           icon: Icons.notifications_outlined,
                           label: 'Messages',
-                          onTap: () => context.push('/notifications'),
+                          onTap: () => switchToTab(context, 3),
                         ),
                       ],
                     ),
