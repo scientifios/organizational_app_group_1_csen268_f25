@@ -69,7 +69,7 @@ class _TasksPageState extends State<TasksPage> {
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
           child: Column(
             children: [
-              _header(context, tasks.length),
+              _header(tasks, listName),
               const SizedBox(height: 12),
               Card(
                 elevation: 3,
@@ -102,15 +102,13 @@ class _TasksPageState extends State<TasksPage> {
     );
   }
 
-  Widget _header(BuildContext context, int count) {
-    final active = _applyQuery(
-      context.read<TasksCubit>().state.tasks.where((t) => !t.completed).toList(),
-      context.read<TasksCubit>().state.lists,
-    );
+  Widget _header(List<Task> tasks, String listName) {
+    final active = tasks.where((t) => !t.completed).toList();
+    final count = tasks.length;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Today', style: Theme.of(context).textTheme.headlineMedium),
+        Text(listName, style: Theme.of(context).textTheme.headlineMedium),
         const SizedBox(height: 4),
         Text('$count tasks · ${active.length} active',
             style: Theme.of(context)
@@ -120,7 +118,6 @@ class _TasksPageState extends State<TasksPage> {
       ],
     );
   }
-
   Widget _buildSearchRow() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -172,7 +169,7 @@ class _TasksPageState extends State<TasksPage> {
     );
 
     if (result != null && result.isNotEmpty) {
-      await cubit.addTask(result);
+      await cubit.addTask(result, listId: widget.listId);
       _controller.clear();
     }
   }
@@ -261,12 +258,11 @@ class _TasksPageState extends State<TasksPage> {
   }
 
   List<Task> _applyQuery(List<Task> tasks, Map<String, String> lists) {
-    final query = _searchController.text.trim().toLowerCase();
     Iterable<Task> filtered = tasks;
-
     if (widget.listId != null) {
       filtered = filtered.where((t) => t.listId == widget.listId);
     }
+    final query = _searchController.text.trim().toLowerCase();
 
     switch (_filter) {
       case TaskFilter.all:
@@ -314,3 +310,7 @@ class _TasksPageState extends State<TasksPage> {
     return list;
   }
 }
+
+
+
+
