@@ -40,6 +40,14 @@ class MessagesRepository {
     required String body,
     MessageCategory category = MessageCategory.activity,
   }) {
+    // Avoid back-to-back duplicates.
+    if (_messages.isNotEmpty) {
+      final last = _messages.first;
+      if (last.title == title && last.body == body) {
+        return;
+      }
+    }
+
     final message = InAppMessage(
       id: _nextId(),
       title: title,

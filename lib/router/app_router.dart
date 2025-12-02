@@ -82,7 +82,7 @@ class AppRouter {
         final onSplash = s.fullPath == '/splash';
         final authed = auth.state is Authenticated;
         if (!authed && !(loggingIn || onSplash)) return '/login';
-        if (authed && (loggingIn || onSplash)) return '/home';
+        if (authed && onSplash) return '/home';
         return null;
       },
     );
