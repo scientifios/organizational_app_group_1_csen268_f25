@@ -1,8 +1,10 @@
 ﻿import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 
+import 'dart:io';
 import '../../model/task.dart';
 import '../../state/tasks_cubit.dart';
 
@@ -231,6 +233,8 @@ class TaskDetailPage extends StatelessWidget {
                       onChanged: (value) =>
                           context.read<TasksCubit>().setNote(task.id, value),
                     ),
+                    const SizedBox(height: 12),
+                    _NoteAttachment(task: task),
                   ],
                 ),
               ),
@@ -254,30 +258,14 @@ class _ReminderSection extends StatelessWidget {
     final items = const [
       DropdownMenuItem(value: 0, child: Text('Off', overflow: TextOverflow.ellipsis)),
       DropdownMenuItem(
-        value: -3,
-        child: Text(
-          'Repeat every 5 minutes until due (test)',
-          overflow: TextOverflow.ellipsis,
-        ),
-      ),
-      DropdownMenuItem(
-        value: -2,
-        child: Text(
-          '5 minutes from now (test)',
-          overflow: TextOverflow.ellipsis,
-        ),
-      ),
-      DropdownMenuItem(
         value: -1,
         child: Text(
-          'At due time (test)',
+          'At due time',
           overflow: TextOverflow.ellipsis,
         ),
       ),
-      DropdownMenuItem(value: 1, child: Text('1 day', overflow: TextOverflow.ellipsis)),
-      DropdownMenuItem(value: 2, child: Text('2 days', overflow: TextOverflow.ellipsis)),
-      DropdownMenuItem(value: 3, child: Text('3 days', overflow: TextOverflow.ellipsis)),
     ];
+    final dropdownValue = task.notifyBeforeDays == -1 ? -1 : 0;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -288,13 +276,13 @@ class _ReminderSection extends StatelessWidget {
         ),
         const SizedBox(height: 4),
         Text(
-          label,
+          _reminderLabel(dropdownValue),
           style:
               Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.grey[600]),
         ),
         const SizedBox(height: 8),
         DropdownButtonFormField<int>(
-          value: task.notifyBeforeDays.clamp(-3, 3),
+          value: dropdownValue,
           items: items,
           decoration: const InputDecoration(
             labelText: 'Choose reminder',
@@ -311,12 +299,208 @@ class _ReminderSection extends StatelessWidget {
   }
 }
 
-String _reminderLabel(int value) {
-  if (value == 0) return 'Off';
-  if (value == -1) return 'At due time (quick test)';
-  if (value == -2) return '5 minutes from now (test)';
-  if (value == -3) return 'Repeat every 5 minutes until due (test)';
-  return '$value day(s) before';
+  String _reminderLabel(int value) {
+    if (value == 0) return 'Off';
+    if (value == -1) return 'At due time';
+    return 'Off';
+  }
+
+class _NoteAttachment extends StatefulWidget {
+  const _NoteAttachment({required this.task});
+
+  final Task task;
+
+  @override
+  State<_NoteAttachment> createState() => _NoteAttachmentState();
+}
+
+class _NoteAttachmentState extends State<_NoteAttachment> {
+  bool _uploading = false;
+  late List<String> _urls;
+
+  @override
+  void initState() {
+    super.initState();
+    _urls = List.of(widget.task.noteImageUrls);
+  }
+
+  @override
+  void didUpdateWidget(covariant _NoteAttachment oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.task.noteImageUrls != widget.task.noteImageUrls) {
+      _urls = List.of(widget.task.noteImageUrls);
+    }
+  }
+
+  Future<void> _pick(ImageSource source) async {
+    final picker = ImagePicker();
+    final picked = await picker.pickImage(
+      source: source,
+      maxWidth: 1600,
+      maxHeight: 1600,
+    );
+    if (picked == null) return;
+
+    setState(() => _uploading = true);
+    try {
+      await context
+          .read<TasksCubit>()
+          .setNoteImage(widget.task.id, File(picked.path));
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Photo attached to note.')),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Failed to attach photo.')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _uploading = false);
+      }
+    }
+  }
+
+  Future<void> _removeAll() async {
+    setState(() {
+      _uploading = true;
+      _urls = [];
+    });
+    try {
+      await context.read<TasksCubit>().clearNoteImage(widget.task.id);
+    } catch (_) {
+      // ignore
+    } finally {
+      if (mounted) setState(() => _uploading = false);
+    }
+  }
+
+  Future<void> _chooseSource() async {
+    final source = await showModalBottomSheet<ImageSource>(
+      context: context,
+      builder: (_) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.photo_camera),
+              title: const Text('Take photo'),
+              onTap: () => Navigator.pop(context, ImageSource.camera),
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library),
+              title: const Text('Choose from gallery'),
+              onTap: () => Navigator.pop(context, ImageSource.gallery),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (source != null && mounted) {
+      await _pick(source);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final hasImage = _urls.isNotEmpty;
+    final canAdd = !_uploading && _urls.length < 3;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            OutlinedButton.icon(
+              onPressed: canAdd ? _chooseSource : null,
+              icon: const Icon(Icons.camera_alt_outlined),
+              label: _uploading
+                  ? const Text('Uploading...')
+                  : Text(hasImage ? 'Add photo' : 'Add photo'),
+            ),
+            if (hasImage) ...[
+              const SizedBox(width: 12),
+              TextButton.icon(
+                onPressed: _uploading ? null : _removeAll,
+                icon: const Icon(Icons.delete_outline),
+                label: const Text('Remove all'),
+              ),
+            ],
+          ],
+        ),
+        if (hasImage) ...[
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: _urls
+                .map(
+                  (u) => _NoteThumb(
+                    url: u,
+                    onRemove: _uploading
+                        ? null
+                        : () async {
+                            setState(() {
+                              _urls = _urls.where((e) => e != u).toList();
+                              _uploading = true;
+                            });
+                            try {
+                              await context
+                                  .read<TasksCubit>()
+                                  .removeNoteImage(widget.task.id, u);
+                            } catch (_) {
+                              // ignore
+                            } finally {
+                              if (mounted) setState(() => _uploading = false);
+                            }
+                          },
+                  ),
+                )
+                .toList(),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+class _NoteThumb extends StatelessWidget {
+  const _NoteThumb({required this.url, this.onRemove});
+
+  final String url;
+  final VoidCallback? onRemove;
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      children: [
+        ClipRRect(
+          borderRadius: BorderRadius.circular(12),
+          child: SizedBox(
+            width: 120,
+            height: 90,
+            child: Image.network(url, fit: BoxFit.cover),
+          ),
+        ),
+        Positioned(
+          top: 4,
+          right: 4,
+          child: InkWell(
+            onTap: onRemove,
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.black54,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              padding: const EdgeInsets.all(4),
+              child: const Icon(Icons.close, size: 14, color: Colors.white),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
 }
 
 class _SectionCard extends StatelessWidget {

@@ -1,5 +1,6 @@
 // lib/state/tasks_cubit.dart
 import 'dart:async';
+import 'dart:io';
 
 import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
@@ -264,6 +265,67 @@ class TasksCubit extends Cubit<TasksState> {
     final trimmed = note.trim();
     final updated = task.copyWith(note: trimmed.isEmpty ? null : trimmed);
     await _tasksRepository.updateTask(userId, updated);
+  }
+
+  Future<void> setNoteImage(String taskId, File file) async {
+    final userId = _userId;
+    if (userId == null) return;
+    final task = _taskById(taskId);
+    if (task == null) return;
+
+    // Limit to 3 images
+    if (task.noteImageUrls.length >= 3) return;
+
+    final url = await _tasksRepository.uploadNoteImage(
+      userId: userId,
+      taskId: taskId,
+      file: file,
+    );
+    final updated = task.copyWith(noteImageUrls: [...task.noteImageUrls, url]);
+    _updateLocalTask(updated);
+    try {
+      await _tasksRepository.updateTask(userId, updated);
+    } catch (_) {
+      // keep local state; backend might retry on stream sync
+    }
+  }
+
+  Future<void> clearNoteImage(String taskId) async {
+    final userId = _userId;
+    if (userId == null) return;
+    final task = _taskById(taskId);
+    if (task == null) return;
+    final updated = task.copyWith(noteImageUrls: []);
+    _updateLocalTask(updated);
+    try {
+      await _tasksRepository.updateTask(userId, updated);
+    } catch (_) {
+      // ignore
+    }
+  }
+
+  Future<void> removeNoteImage(String taskId, String url) async {
+    final userId = _userId;
+    if (userId == null) return;
+    final task = _taskById(taskId);
+    if (task == null) return;
+    final updated =
+        task.copyWith(noteImageUrls: task.noteImageUrls.where((e) => e != url).toList());
+    _updateLocalTask(updated);
+    try {
+      await _tasksRepository.updateTask(userId, updated);
+    } catch (_) {
+      // ignore
+    }
+  }
+
+  void _updateLocalTask(Task updated) {
+    final tasks = [...state.tasks];
+    final idx = tasks.indexWhere((t) => t.id == updated.id);
+    if (idx != -1) {
+      tasks[idx] = updated;
+      emit(state.copyWith(tasks: tasks));
+    }
   }
 
   Future<void> setNotifyBeforeDays(String taskId, int days) async {
