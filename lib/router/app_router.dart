@@ -8,6 +8,7 @@ import '../ui/pages/task_detail_page.dart';
 import '../ui/pages/add_note_page.dart';
 import '../ui/pages/create_group_page.dart';
 import '../ui/pages/splash_page.dart';
+import '../ui/pages/tasks_page.dart';
 
 class AppRouter {
   static GoRouter create(AuthCubit auth) {
@@ -44,6 +45,11 @@ class AppRouter {
               builder: (c, s) => AddNotePage(taskId: s.pathParameters['id']!),
             )
           ],
+        ),
+        GoRoute(
+          path: '/tasks/list/:id',
+          name: 'tasks_list',
+          builder: (c, s) => TasksPage(listId: s.pathParameters['id']),
         ),
         GoRoute(
           path: '/settings',

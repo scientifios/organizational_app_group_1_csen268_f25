@@ -10,7 +10,9 @@ enum TaskFilter { all, active, completed }
 enum TaskSort { smart, dueDate, priority, created }
 
 class TasksPage extends StatefulWidget {
-  const TasksPage({super.key});
+  const TasksPage({super.key, this.listId});
+
+  final String? listId;
 
   @override
   State<TasksPage> createState() => _TasksPageState();
@@ -40,10 +42,13 @@ class _TasksPageState extends State<TasksPage> {
   Widget build(BuildContext context) {
     final cubit = context.watch<TasksCubit>();
     final tasks = _applyQuery(cubit.state.tasks, cubit.state.lists);
+    final listName = widget.listId != null
+        ? (cubit.state.lists[widget.listId] ?? 'List')
+        : 'Tasks';
     return Scaffold(
       appBar: AppBar(
-        automaticallyImplyLeading: false,
-        title: const Text('Tasks'),
+        automaticallyImplyLeading: widget.listId != null,
+        title: Text(widget.listId != null ? listName : 'Tasks'),
         centerTitle: false,
         actions: const [],
       ),
@@ -258,6 +263,10 @@ class _TasksPageState extends State<TasksPage> {
   List<Task> _applyQuery(List<Task> tasks, Map<String, String> lists) {
     final query = _searchController.text.trim().toLowerCase();
     Iterable<Task> filtered = tasks;
+
+    if (widget.listId != null) {
+      filtered = filtered.where((t) => t.listId == widget.listId);
+    }
 
     switch (_filter) {
       case TaskFilter.all:
