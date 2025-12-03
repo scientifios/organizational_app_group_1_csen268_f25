@@ -1,78 +1,101 @@
-﻿# Organizational App (CSEN268 F25)
+# Organizational App (CSEN268 F25)
 
-Single-user task/notes app (My Day, lists, reminders) built with Flutter + Firebase. Includes in-app message center and push reminders via Firebase Cloud Messaging + Cloud Functions.
+Single-user task/notes app built with Flutter + Firebase. It supports My Day, lists, due reminders (FCM), in-app messages, and note attachments (camera/gallery). This repo is meant to be re-used with **your own Firebase project/keys**—see setup below.
 
 ## Features
-- Tasks with due date/time, priority, steps, notes, My Day and Important flags
-- Reminder options: off, at due, 5 minutes from now, repeat every 5 minutes until due, 1–3 days before
-- In-app Messages page fed by task events + push notifications
-- Firebase Auth + Firestore persistence; Cloud Functions for scheduled reminders
-- Light/dark theme, simple routing via go_router
+- Tasks: due date/time, priority, steps, notes, My Day / Important flags, list grouping.
+- Reminders: up to two pushes per task (10 minutes before due, and at/after due) driven by Cloud Functions + FCM.
+- In-app Messages: task events + push notifications with basic de-dup.
+- Notes: text plus up to 3 photos (camera or gallery), stored in Firebase Storage.
+- Auth & persistence: Firebase Auth + Firestore; routes via go_router; light/dark theme.
+
+## Tech stack
+- Flutter, Bloc, go_router, image_picker, intl.
+- Firebase: Auth, Firestore, Storage, Cloud Messaging.
+- Cloud Functions (Node.js 20) + Cloud Scheduler (every 1 minute) for reminders.
 
 ## Prerequisites
-- Flutter 3.3+ with required toolchains (`flutter doctor` clean)
-- Node 18+ for Firebase CLI / functions deploy
-- Firebase project (Blaze plan enabled for scheduled functions)
-- Android/iOS: enable Developer Mode on Windows to allow symlinks when building Flutter
+- Flutter 3.3+ (`flutter doctor` clean).
+- Node 18+ for Firebase CLI / functions.
+- A Firebase project (Blaze plan needed for scheduled functions).
+- Android/iOS toolchains as usual.
 
-## Setup (Firebase + app)
-1) Clone repo and install deps
+## Setup (connect your own Firebase/API keys)
+1) Install deps:
 ```bash
 flutter pub get
 ```
 
-2) Configure Firebase
-- Install Firebase CLI and FlutterFire CLI: `npm i -g firebase-tools` and `dart pub global activate flutterfire_cli`
-- Login: `firebase login`
-- Run FlutterFire: `flutterfire configure` selecting your Firebase project; it generates `lib/firebase_options.dart` and platform configs (`google-services.json`, `GoogleService-Info.plist`).
-- Ensure Firebase products enabled: Auth, Firestore, Cloud Messaging, Cloud Functions, (optional) Storage.
+2) Firebase CLI & FlutterFire:
+```bash
+npm i -g firebase-tools
+dart pub global activate flutterfire_cli
+firebase login
+flutterfire configure --project <your_project_id>
+```
+This generates `lib/firebase_options.dart` and places `google-services.json` (Android) / `GoogleService-Info.plist` (iOS). Ensure Auth, Firestore, Cloud Messaging, Storage, and Cloud Functions are enabled in the console.
 
-3) Firestore data model
-- `users/{uid}/tasks/{taskId}`: title, completed, important, myDay, dueDate (Timestamp), notifyBeforeDays (int), priority, steps (array), note, estimateMinutes, listId, createdAt, updatedAt
-- `users/{uid}/lists/{listId}`: name, createdAt
-- `notifications/{uid}/messages/{messageId}`: title, body, route?, taskId?, createdAt
-- `user_tokens/{uid}/tokens/{token}`: token docs (id = FCM token)
-- `users/{uid}/reminders/{taskId}`: created by app to schedule pushes (notifyAt, repeatIntervalMinutes, sent, dueDate, title, taskId)
+3) Firestore index (required for reminders):
+- Create a **composite index** on collection group `tasks` with fields: `completed` Asc, `dueDate` Asc.
 
-4) Cloud Functions (FCM reminders)
-- From `functions/` install deps: `npm install`
-- Deploy: `npx firebase-tools deploy --only functions:sendTaskReminders,functions:onNotificationCreated`
-- Function behavior:
-  - `sendTaskReminders` runs every 5 minutes, sends due reminders, supports repeat-every-5-min until due
-  - `onNotificationCreated` pushes FCM when a Firestore notification doc is created
+4) Optional external keys (LLM, etc.):
+- Gemini/OpenAI are **not wired by default**. If you add them, provide keys via `--dart-define` or a .env loader, e.g.:
+  - `GEMINI_API_KEY=...`
+  - `OPENAI_API_KEY=...`
+  Keep secrets out of git; document how they’re loaded in your service code.
 
-5) Push setup (mobile)
-- Android: `google-services.json` in `android/app`; enable FCM in Firebase console
-- iOS: `GoogleService-Info.plist` in `ios/Runner`; enable Push capability, request notification permission at runtime
-- App uses `FirebaseMessaging` and registers background handler in `lib/main.dart`
+5) Cloud Functions (reminders & FCM fan-out):
+```bash
+cd functions
+npm install
+firebase deploy --only functions:sendTaskReminders,functions:onNotificationCreated
+```
+- `sendTaskReminders`: runs every 1 minute; for each incomplete task sends at most two notifications (10 minutes before due; at/after due) and sets `preReminderSent` / `dueReminderSent`.
+- `onNotificationCreated`: pushes FCM when a Firestore `notifications/{uid}/messages` doc is created.
 
-6) External API keys
-- Gemini / OpenAI are not wired into the app yet; if you add LLM features, inject keys via `.env` or Dart consts and **never commit secrets**. Document variables like `GEMINI_API_KEY` or `OPENAI_API_KEY` and load them in your services.
+## Firestore data model (current)
+- `users/{uid}/tasks/{taskId}`: title, completed, important, myDay, dueDate (Timestamp), priority, steps (array), note, estimateMinutes, listId, createdAt, updatedAt, preReminderSent (bool), dueReminderSent (bool), noteImageUrls (array<string>).
+- `users/{uid}/lists/{listId}`: name, createdAt.
+- `notifications/{uid}/messages/{messageId}`: title, body, route?, taskId?, createdAt.
+- `user_tokens/{uid}/tokens/{token}`: device tokens (doc id = token).
+- (Legacy, unused) `users/{uid}/reminders/{taskId}` from the old repeat-every-5-min logic.
 
 ## Running
 ```bash
 flutter run -d <device>
 ```
-- First launch will ask for notification permission; allow it to test FCM.
-- Find your FCM token in debug logs (`FCM token: ...`) and verify it is written under `user_tokens/{uid}/tokens/{token}`.
+- Allow notification permission on first launch. The FCM token appears in debug logs; ensure it’s stored under `user_tokens/{uid}/tokens/{token}`.
+
+## Build
+- Debug APK: `flutter build apk --debug`
+- Release APK: `flutter build apk --release`
+- iOS IPA (on macOS): `flutter build ipa --release`
+
+## App icons
+- Replace `assets/icons/appstore.png` with a 1024x1024 image, then regenerate:
+```bash
+dart run flutter_launcher_icons
+```
 
 ## Quick tests
-- In Firestore, add a doc under `notifications/{uid}/messages` with `title/body`; you should see an in-app message + a push.
-- Create a task with “Repeat every 5 minutes until due” and a due time ~20–30 min ahead; you should receive multiple pushes until the deadline.
+- Add a doc under `notifications/{uid}/messages` with `title/body`: should appear in Messages and push via FCM.
+- Create a task with due time ~15–20 minutes out: expect one push at T-10 minutes and one at/after due if still incomplete.
 
 ## Project layout
 ```
 lib/
-  main.dart                # boot + PushNotificationService wiring
+  main.dart                # bootstrap + PushNotificationService wiring
   router/app_router.dart   # go_router setup
-  model/task.dart          # task model
-  repository/              # tasks, reminders, notifications, messages
+  model/task.dart          # task model (reminder flags, noteImageUrls)
+  repository/              # tasks, notifications, messages, reminders (legacy)
   state/                   # cubits for auth, tasks, messages, theme
-  ui/pages/                # list page, task detail, messages page, etc.
+  ui/pages/                # home, tasks, task detail, messages, settings, etc.
 functions/index.js         # Cloud Functions (reminders + FCM fan-out)
+assets/icons/              # app icon source (appstore.png)
+assets/animations/         # Lottie splash
 ```
 
-## Notes
-- If you update dependencies, run `flutter pub upgrade` and `npm audit fix` (functions) as needed.
-- Scheduled functions need Blaze (billing) and Cloud Scheduler enabled; otherwise deployments will fail.
-- Keep secrets out of git; share sample `.env`/config instructions instead.
+## Notes & gotchas
+- Scheduled functions require Blaze billing and Cloud Scheduler enabled.
+- Network issues on emulators (DNS/GMS) can block Firestore/FCM; use a clean Play emulator or a real device with working DNS.
+- Logout redirects to `/login`; reminders are now fixed to 10-min-before + due (no repeat-every-5-min). 
