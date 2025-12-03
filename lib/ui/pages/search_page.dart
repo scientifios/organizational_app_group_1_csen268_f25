@@ -46,7 +46,7 @@ class _SearchPageState extends State<SearchPage> {
           return ListTile(
             title: Text(t.title),
             subtitle: Text(t.completed ? 'Completed' : 'Open'),
-            onTap: ()=> context.push('/tasks/detail/${t.id}'),
+            onTap: ()=> context.push('/task_detail/${t.id}'),
           );
         },
       ),

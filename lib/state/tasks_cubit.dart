@@ -1,5 +1,6 @@
 // lib/state/tasks_cubit.dart
 import 'dart:async';
+import 'dart:io';
 
 import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
@@ -7,6 +8,8 @@ import 'package:equatable/equatable.dart';
 import '../model/in_app_message.dart';
 import '../model/task.dart';
 import '../repository/messages_repository.dart';
+import '../repository/notifications_repository.dart';
+import '../repository/reminders_repository.dart';
 import '../repository/tasks_repository.dart';
 import 'auth_cubit.dart';
 
@@ -36,10 +39,14 @@ class TasksState extends Equatable {
 class TasksCubit extends Cubit<TasksState> {
   TasksCubit({
     required TasksRepository tasksRepository,
+    required RemindersRepository remindersRepository,
     MessagesRepository? messagesRepository,
+    NotificationsRepository? notificationsRepository,
     required AuthCubit authCubit,
   })  : _tasksRepository = tasksRepository,
+        _remindersRepository = remindersRepository,
         _messagesRepository = messagesRepository,
+        _notificationsRepository = notificationsRepository,
         super(const TasksState()) {
     _authSubscription = authCubit.stream.listen(_handleAuthState);
     _handleAuthState(authCubit.state);
@@ -47,6 +54,8 @@ class TasksCubit extends Cubit<TasksState> {
 
   final TasksRepository _tasksRepository;
   final MessagesRepository? _messagesRepository;
+  final NotificationsRepository? _notificationsRepository;
+  final RemindersRepository _remindersRepository;
 
   StreamSubscription<AuthState>? _authSubscription;
   StreamSubscription<List<Task>>? _tasksSubscription;
@@ -123,6 +132,10 @@ class TasksCubit extends Cubit<TasksState> {
       body: '"$trimmed" is now on your list.',
       category: MessageCategory.activity,
     );
+    await _notify(
+      title: 'Task added',
+      body: '"$trimmed" is now on your list.',
+    );
   }
 
   Future<void> removeTask(String id) async {
@@ -136,6 +149,12 @@ class TasksCubit extends Cubit<TasksState> {
         body: '"${removed.title}" was deleted.',
         category: MessageCategory.activity,
       );
+      await _notify(
+        title: 'Task removed',
+        body: '"${removed.title}" was deleted.',
+        taskId: removed.id,
+      );
+      await _remindersRepository.syncReminder(userId: userId, task: removed.copyWith(completed: true));
     }
   }
 
@@ -154,13 +173,24 @@ class TasksCubit extends Cubit<TasksState> {
         body: 'Nice work! "${updated.title}" is done.',
         category: MessageCategory.reminder,
       );
+      await _notify(
+        title: 'Task completed',
+        body: 'Nice work! "${updated.title}" is done.',
+        taskId: updated.id,
+      );
     } else {
       _messagesRepository?.addMessage(
         title: 'Task reopened',
         body: '"${updated.title}" is active again.',
         category: MessageCategory.tip,
       );
+      await _notify(
+        title: 'Task reopened',
+        body: '"${updated.title}" is active again.',
+        taskId: updated.id,
+      );
     }
+    await _remindersRepository.syncReminder(userId: userId, task: updated);
   }
 
   Future<void> toggleImportant(String id) async {
@@ -176,6 +206,11 @@ class TasksCubit extends Cubit<TasksState> {
       title: updated.important ? 'Marked important' : 'Removed from important',
       body: '"${updated.title}" ${updated.important ? 'was pinned to Important.' : 'is no longer marked important.'}',
       category: MessageCategory.activity,
+    );
+    await _notify(
+      title: updated.important ? 'Marked important' : 'Removed from important',
+      body: '"${updated.title}" ${updated.important ? 'was pinned to Important.' : 'is no longer marked important.'}',
+      taskId: updated.id,
     );
   }
 
@@ -201,6 +236,10 @@ class TasksCubit extends Cubit<TasksState> {
       title: 'List created',
       body: '"$trimmed" is ready.',
       category: MessageCategory.tip,
+    );
+    await _notify(
+      title: 'List created',
+      body: '"$trimmed" is ready.',
     );
   }
 
@@ -228,6 +267,79 @@ class TasksCubit extends Cubit<TasksState> {
     await _tasksRepository.updateTask(userId, updated);
   }
 
+  Future<void> setNoteImage(String taskId, File file) async {
+    final userId = _userId;
+    if (userId == null) return;
+    final task = _taskById(taskId);
+    if (task == null) return;
+
+    // Limit to 3 images
+    if (task.noteImageUrls.length >= 3) return;
+
+    final url = await _tasksRepository.uploadNoteImage(
+      userId: userId,
+      taskId: taskId,
+      file: file,
+    );
+    final updated = task.copyWith(noteImageUrls: [...task.noteImageUrls, url]);
+    _updateLocalTask(updated);
+    try {
+      await _tasksRepository.updateTask(userId, updated);
+    } catch (_) {
+      // keep local state; backend might retry on stream sync
+    }
+  }
+
+  Future<void> clearNoteImage(String taskId) async {
+    final userId = _userId;
+    if (userId == null) return;
+    final task = _taskById(taskId);
+    if (task == null) return;
+    final updated = task.copyWith(noteImageUrls: []);
+    _updateLocalTask(updated);
+    try {
+      await _tasksRepository.updateTask(userId, updated);
+    } catch (_) {
+      // ignore
+    }
+  }
+
+  Future<void> removeNoteImage(String taskId, String url) async {
+    final userId = _userId;
+    if (userId == null) return;
+    final task = _taskById(taskId);
+    if (task == null) return;
+    final updated =
+        task.copyWith(noteImageUrls: task.noteImageUrls.where((e) => e != url).toList());
+    _updateLocalTask(updated);
+    try {
+      await _tasksRepository.updateTask(userId, updated);
+    } catch (_) {
+      // ignore
+    }
+  }
+
+  void _updateLocalTask(Task updated) {
+    final tasks = [...state.tasks];
+    final idx = tasks.indexWhere((t) => t.id == updated.id);
+    if (idx != -1) {
+      tasks[idx] = updated;
+      emit(state.copyWith(tasks: tasks));
+    }
+  }
+
+  Future<void> setNotifyBeforeDays(String taskId, int days) async {
+    final userId = _userId;
+    if (userId == null) return;
+    final task = _taskById(taskId);
+    if (task == null) return;
+
+    final normalized = days.clamp(-3, 30);
+    final updated = task.copyWith(notifyBeforeDays: normalized);
+    await _tasksRepository.updateTask(userId, updated);
+    await _remindersRepository.syncReminder(userId: userId, task: updated);
+  }
+
   Future<void> setPriority(String taskId, TaskPriority priority) async {
     final userId = _userId;
     if (userId == null) return;
@@ -246,10 +358,21 @@ class TasksCubit extends Cubit<TasksState> {
     final task = _taskById(taskId);
     if (task == null) return;
 
-    await _tasksRepository.updateTask(
-      userId,
-      task.copyWith(dueDate: dueDate),
+    final normalizedDue = dueDate == null
+        ? null
+        : DateTime(dueDate.year, dueDate.month, dueDate.day);
+    final today = DateTime.now();
+    final normalizedToday =
+        DateTime(today.year, today.month, today.day);
+    final shouldAutoMyDay =
+        normalizedDue != null && normalizedDue == normalizedToday;
+
+    final updated = task.copyWith(
+      dueDate: dueDate,
+      myDay: shouldAutoMyDay ? true : task.myDay,
     );
+    await _tasksRepository.updateTask(userId, updated);
+    await _remindersRepository.syncReminder(userId: userId, task: updated);
   }
 
   Future<void> setEstimateMinutes(String taskId, int? minutes) async {
@@ -278,5 +401,21 @@ class TasksCubit extends Cubit<TasksState> {
     await _listsSubscription?.cancel();
     await _authSubscription?.cancel();
     return super.close();
+  }
+
+  Future<void> _notify({
+    required String title,
+    required String body,
+    String? taskId,
+  }) async {
+    final userId = _userId;
+    if (userId == null) return;
+    if (_notificationsRepository == null) return;
+    await _notificationsRepository!.sendNotification(
+      userId: userId,
+      title: title,
+      body: body,
+      taskId: taskId,
+    );
   }
 }

@@ -53,6 +53,10 @@ class Task extends Equatable {
   final TaskPriority priority;
   final DateTime? dueDate;
   final int? estimateMinutes;
+  final int notifyBeforeDays;
+  final bool preReminderSent;
+  final bool dueReminderSent;
+  final List<String> noteImageUrls;
 
   const Task({
     required this.id,
@@ -68,6 +72,10 @@ class Task extends Equatable {
     this.priority = TaskPriority.medium,
     this.dueDate,
     this.estimateMinutes,
+    this.notifyBeforeDays = 1,
+    this.preReminderSent = false,
+    this.dueReminderSent = false,
+    this.noteImageUrls = const [],
   });
 
   Task copyWith({
@@ -84,6 +92,10 @@ class Task extends Equatable {
     TaskPriority? priority,
     DateTime? dueDate,
     int? estimateMinutes,
+    int? notifyBeforeDays,
+    bool? preReminderSent,
+    bool? dueReminderSent,
+    List<String>? noteImageUrls,
   }) {
     return Task(
       id: id ?? this.id,
@@ -99,6 +111,10 @@ class Task extends Equatable {
       priority: priority ?? this.priority,
       dueDate: dueDate ?? this.dueDate,
       estimateMinutes: estimateMinutes ?? this.estimateMinutes,
+      notifyBeforeDays: notifyBeforeDays ?? this.notifyBeforeDays,
+      preReminderSent: preReminderSent ?? this.preReminderSent,
+      dueReminderSent: dueReminderSent ?? this.dueReminderSent,
+      noteImageUrls: noteImageUrls ?? this.noteImageUrls,
     );
   }
 
@@ -117,5 +133,9 @@ class Task extends Equatable {
         priority,
         dueDate,
         estimateMinutes,
+        notifyBeforeDays,
+        preReminderSent,
+        dueReminderSent,
+        noteImageUrls,
       ];
 }

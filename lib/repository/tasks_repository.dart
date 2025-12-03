@@ -1,4 +1,7 @@
+import 'dart:io';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_storage/firebase_storage.dart' as storage;
 
 import '../model/task.dart';
 
@@ -42,6 +45,7 @@ class TasksRepository {
     TaskPriority priority = TaskPriority.medium,
     DateTime? dueDate,
     int? estimateMinutes,
+    int notifyBeforeDays = 1,
   }) async {
     final trimmed = title.trim();
     if (trimmed.isEmpty) return;
@@ -59,6 +63,10 @@ class TasksRepository {
       'priority': priority.name,
       'dueDate': dueDate != null ? Timestamp.fromDate(dueDate) : null,
       'estimateMinutes': estimateMinutes,
+      'notifyBeforeDays': notifyBeforeDays,
+      'preReminderSent': false,
+      'dueReminderSent': false,
+      'noteImageUrls': <String>[],
     });
   }
 
@@ -76,6 +84,10 @@ class TasksRepository {
       'dueDate':
           task.dueDate != null ? Timestamp.fromDate(task.dueDate!) : null,
       'estimateMinutes': task.estimateMinutes,
+      'notifyBeforeDays': task.notifyBeforeDays,
+      'preReminderSent': task.preReminderSent,
+      'dueReminderSent': task.dueReminderSent,
+      'noteImageUrls': task.noteImageUrls,
     };
 
     await _tasksRef(userId).doc(task.id).update(payload);
@@ -118,7 +130,42 @@ class TasksRepository {
       priority: priority,
       dueDate: _toDateTime(data['dueDate']),
       estimateMinutes: (data['estimateMinutes'] as num?)?.toInt(),
+      notifyBeforeDays: (data['notifyBeforeDays'] as num?)?.toInt() ?? 1,
+      preReminderSent: data['preReminderSent'] as bool? ?? false,
+      dueReminderSent: data['dueReminderSent'] as bool? ?? false,
+      noteImageUrls: _mapNoteImages(data),
     );
+  }
+
+  Future<String> uploadNoteImage({
+    required String userId,
+    required String taskId,
+    required File file,
+  }) async {
+    final bucket = storage.FirebaseStorage.instance;
+    final ref = bucket
+        .ref()
+        .child('tasks')
+        .child(userId)
+        .child(taskId)
+        .child('note_${DateTime.now().millisecondsSinceEpoch}.jpg');
+
+    final metadata = storage.SettableMetadata(contentType: 'image/jpeg');
+    await ref.putFile(file, metadata);
+    return ref.getDownloadURL();
+  }
+
+  List<String> _mapNoteImages(Map<String, dynamic> data) {
+    final legacy = data['noteImageUrl'] as String?;
+    final list = data['noteImageUrls'];
+    List<String> urls = [];
+    if (list is Iterable) {
+      urls = list.whereType<String>().toList();
+    }
+    if (legacy != null && legacy.isNotEmpty && !urls.contains(legacy)) {
+      urls.add(legacy);
+    }
+    return urls;
   }
 
   List<String> _mapSteps(dynamic raw) {

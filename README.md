@@ -1,57 +1,101 @@
-﻿# Organizational App
+# Organizational App (CSEN268 F25)
 
-Flutter 3.x prototype for the Organizational App spec backed by Firebase Auth and Cloud Firestore. The UI focuses on navigation, layout, and interactive flows, while task data is now stored per-user under `users/{uid}` in Firestore.
+Single-user task/notes app built with Flutter + Firebase. It supports My Day, lists, due reminders (FCM), in-app messages, and note attachments (camera/gallery). This repo is meant to be re-used with **your own Firebase project/keys**—see setup below.
 
-## Highlights
-- Multi-screen routing with `go_router`, including guarded login flows and deep links.
-- Task-centric UI covering My Day, Important, list views, and detail flows with add-note overlays persisted in Firestore.
-- Smart My Day that auto-pulls urgent/high-value tasks, plus a priority-driven Important board and searchable/sortable master list.
-- Floating actions for Copilot and group creation showcased through custom dialogs and FAB layouts.
-- Theme management via `flutter_bloc`, supporting light, dark, and system modes out of the box.
-- Settings, notifications, and policy pages included as static content templates for future expansion.
+## Features
+- Tasks: due date/time, priority, steps, notes, My Day / Important flags, list grouping.
+- Reminders: up to two pushes per task (10 minutes before due, and at/after due) driven by Cloud Functions + FCM.
+- In-app Messages: task events + push notifications with basic de-dup.
+- Notes: text plus up to 3 photos (camera or gallery), stored in Firebase Storage.
+- Auth & persistence: Firebase Auth + Firestore; routes via go_router; light/dark theme.
 
-## Project Structure
-- `lib/main.dart` boots the app with `MultiBlocProvider` and `MaterialApp.router`.
-- `lib/router/app_router.dart` centralizes page registration, transitions, and auth redirects.
-- `lib/state/` hosts Cubits for auth, theme, and task state backed by models in `lib/model/`.
-- `lib/ui/` separates layout scaffolds, feature pages, and reusable widgets for clarity.
+## Tech stack
+- Flutter, Bloc, go_router, image_picker, intl.
+- Firebase: Auth, Firestore, Storage, Cloud Messaging.
+- Cloud Functions (Node.js 20) + Cloud Scheduler (every 1 minute) for reminders.
 
+## Prerequisites
+- Flutter 3.3+ (`flutter doctor` clean).
+- Node 18+ for Firebase CLI / functions.
+- A Firebase project (Blaze plan needed for scheduled functions).
+- Android/iOS toolchains as usual.
+
+## Setup (connect your own Firebase/API keys)
+1) Install deps:
+```bash
+flutter pub get
+```
+
+2) Firebase CLI & FlutterFire:
+```bash
+npm i -g firebase-tools
+dart pub global activate flutterfire_cli
+firebase login
+flutterfire configure --project <your_project_id>
+```
+This generates `lib/firebase_options.dart` and places `google-services.json` (Android) / `GoogleService-Info.plist` (iOS). Ensure Auth, Firestore, Cloud Messaging, Storage, and Cloud Functions are enabled in the console.
+
+3) Firestore index (required for reminders):
+- Create a **composite index** on collection group `tasks` with fields: `completed` Asc, `dueDate` Asc.
+
+4) Optional external keys (LLM, etc.):
+- Gemini/OpenAI are **not wired by default**. If you add them, provide keys via `--dart-define` or a .env loader, e.g.:
+  - `GEMINI_API_KEY=...`
+  - `OPENAI_API_KEY=...`
+  Keep secrets out of git; document how they’re loaded in your service code.
+
+5) Cloud Functions (reminders & FCM fan-out):
+```bash
+cd functions
+npm install
+firebase deploy --only functions:sendTaskReminders,functions:onNotificationCreated
+```
+- `sendTaskReminders`: runs every 1 minute; for each incomplete task sends at most two notifications (10 minutes before due; at/after due) and sets `preReminderSent` / `dueReminderSent`.
+- `onNotificationCreated`: pushes FCM when a Firestore `notifications/{uid}/messages` doc is created.
+
+## Firestore data model (current)
+- `users/{uid}/tasks/{taskId}`: title, completed, important, myDay, dueDate (Timestamp), priority, steps (array), note, estimateMinutes, listId, createdAt, updatedAt, preReminderSent (bool), dueReminderSent (bool), noteImageUrls (array<string>).
+- `users/{uid}/lists/{listId}`: name, createdAt.
+- `notifications/{uid}/messages/{messageId}`: title, body, route?, taskId?, createdAt.
+- `user_tokens/{uid}/tokens/{token}`: device tokens (doc id = token).
+- (Legacy, unused) `users/{uid}/reminders/{taskId}` from the old repeat-every-5-min logic.
+
+## Running
+```bash
+flutter run -d <device>
+```
+- Allow notification permission on first launch. The FCM token appears in debug logs; ensure it’s stored under `user_tokens/{uid}/tokens/{token}`.
+
+## Build
+- Debug APK: `flutter build apk --debug`
+- Release APK: `flutter build apk --release`
+- iOS IPA (on macOS): `flutter build ipa --release`
+
+## App icons
+- Replace `assets/icons/appstore.png` with a 1024x1024 image, then regenerate:
+```bash
+dart run flutter_launcher_icons
+```
+
+## Quick tests
+- Add a doc under `notifications/{uid}/messages` with `title/body`: should appear in Messages and push via FCM.
+- Create a task with due time ~15–20 minutes out: expect one push at T-10 minutes and one at/after due if still incomplete.
+
+## Project layout
 ```
 lib/
-|-- main.dart
-|-- model/
-|   |-- task.dart
-|   |-- user.dart
-|-- router/
-|   |-- app_router.dart
-|-- state/
-|   |-- auth_cubit.dart
-|   |-- tasks_cubit.dart
-|   |-- theme_cubit.dart
-`-- ui/
-    |-- layout/
-    |-- pages/
-    `-- widgets/
+  main.dart                # bootstrap + PushNotificationService wiring
+  router/app_router.dart   # go_router setup
+  model/task.dart          # task model (reminder flags, noteImageUrls)
+  repository/              # tasks, notifications, messages, reminders (legacy)
+  state/                   # cubits for auth, tasks, messages, theme
+  ui/pages/                # home, tasks, task detail, messages, settings, etc.
+functions/index.js         # Cloud Functions (reminders + FCM fan-out)
+assets/icons/              # app icon source (appstore.png)
+assets/animations/         # Lottie splash
 ```
 
-## Primary Dependencies
-- `flutter_bloc` for Cubit-based presentation logic and theme toggling.
-- `go_router` for declarative navigation and deep-link friendly routing.
-- `equatable` to simplify state comparison in immutable models and Cubits.
-- `intl` reserved for future formatting and localization work.
-
-## Getting Started
-1. Install Flutter 3.3 or newer and configure target platforms (`flutter doctor`).
-2. Run `flutterfire configure` (or manually wire `DefaultFirebaseOptions`) with Firebase Auth + Cloud Firestore enabled for your project.
-3. Create the following collections for each signed-in user:
-   - `users/{uid}/tasks` with fields such as `title`, `completed`, `important`, `myDay`, `listId`, `steps`, `note`, `createdAt`, `updatedAt`.
-   - `users/{uid}/lists` with at least a `name` field.
-4. Fetch packages with `flutter pub get` from the repository root.
-5. Launch the UI prototype using `flutter run -d <device>` (for example `chrome`, `windows`, or `android`).
-6. Optional: format with `flutter format .` and analyze with `flutter analyze` before submitting changes.
-
-## Development Notes
-- Task/list CRUD and intelligence features (My Day, Important board, search/filter/sort) now flow through `TasksRepository`, which expects Firebase Auth + Firestore to be configured; update indexes/rules as needed for your project.
-- Authentication is already powered by Firebase Auth via `AuthCubit`.
-- Add new feature pages under `lib/ui/pages/` and register them in `AppRouter.create` to expose routes.
-- Keep Cubit states immutable and rely on `copyWith` patterns to avoid unintended widget rebuilds.
+## Notes & gotchas
+- Scheduled functions require Blaze billing and Cloud Scheduler enabled.
+- Network issues on emulators (DNS/GMS) can block Firestore/FCM; use a clean Play emulator or a real device with working DNS.
+- Logout redirects to `/login`; reminders are now fixed to 10-min-before + due (no repeat-every-5-min). 

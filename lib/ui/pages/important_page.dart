@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
@@ -20,31 +20,84 @@ class ImportantPage extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        leading: BackButton(onPressed: () => context.pop()),
+        leading: BackButton(
+          onPressed: () {
+            // Always return to home shell to avoid landing on tasks root unintentionally.
+            context.go('/home');
+          },
+        ),
         title: const Text('Important'),
+        actions: const [],
       ),
-      body: grouped.isEmpty
-          ? const Center(child: Text('No important tasks yet.'))
-          : ListView(
-              padding: const EdgeInsets.only(bottom: 96),
-              children: [
-                for (final entry in grouped.entries) ...[
-                  if (entry.key != null)
-                    Padding(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 8),
-                      child: Text(
-                        entry.key!,
-                        style: Theme.of(context).textTheme.titleMedium,
-                      ),
-                    ),
-                  ...entry.value.map(
-                    (task) => TaskTile(task: task),
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Starred', style: Theme.of(context).textTheme.headlineMedium),
+              const SizedBox(height: 4),
+              Text('${tasks.length} tasks',
+                  style: Theme.of(context)
+                      .textTheme
+                      .bodyMedium
+                      ?.copyWith(color: Colors.grey[600])),
+              const SizedBox(height: 12),
+              Expanded(
+                child: Card(
+                  elevation: 3,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(18),
                   ),
-                  const Divider(height: 1),
-                ]
-              ],
-            ),
+                  child: grouped.isEmpty
+                      ? const Center(
+                          child: Padding(
+                            padding: EdgeInsets.all(24),
+                            child: Text('No important tasks yet.'),
+                          ),
+                        )
+                      : ListView.separated(
+                          padding: const EdgeInsets.only(bottom: 96, top: 8),
+                          itemCount: grouped.length,
+                          separatorBuilder: (_, __) => const SizedBox(height: 8),
+                          itemBuilder: (context, groupIndex) {
+                            final entry = grouped.entries.elementAt(groupIndex);
+                            return Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                if (entry.key != null)
+                                  Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 16, vertical: 8),
+                                    child: Text(
+                                      entry.key!,
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .titleMedium
+                                          ?.copyWith(fontWeight: FontWeight.w600),
+                                    ),
+                                  ),
+                                ...entry.value.map(
+                                  (task) => Card(
+                                    elevation: 0,
+                                    margin: const EdgeInsets.symmetric(
+                                        horizontal: 12, vertical: 4),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(14),
+                                    ),
+                                    child: TaskTile(task: task),
+                                  ),
+                                ),
+                              ],
+                            );
+                          },
+                        ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
